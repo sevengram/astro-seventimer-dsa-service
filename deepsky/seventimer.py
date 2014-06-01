@@ -19,7 +19,7 @@ class WeatherHandler(tornado.web.RequestHandler):
         lon = self.get_argument('lon')
         lat = self.get_argument('lat')
         client = tornado.httpclient.AsyncHTTPClient()
-        request = tornado.httpclient.HTTPRequest(url="http://www.7timer.com/v4/bin/astro.php?" + urllib.urlencode(
+        request = tornado.httpclient.HTTPRequest(url="http://7timer.y234.cn/v4/bin/astro.php?" + urllib.urlencode(
             {'lon': lon, 'lat': lat, 'output': 'json'}), connect_timeout=10, request_timeout=10)
         start_time = time.time()
         response = yield client.fetch(request)

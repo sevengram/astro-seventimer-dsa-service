@@ -8,6 +8,7 @@ import hashlib
 import tornado.web
 import tornado.gen
 import tornado.httpclient
+import tornado.curl_httpclient
 
 from collections import defaultdict
 
@@ -97,10 +98,10 @@ def process_weather(request, **kwargs):
 @tornado.gen.coroutine
 def get_location(query):
     query = query.encode('utf8')
-    client = tornado.httpclient.AsyncHTTPClient()
+    client = tornado.curl_httpclient.CurlAsyncHTTPClient()
     map_url = "http://maps.googleapis.com/maps/api/geocode/json?" + urllib.urlencode(
         {'address': query, 'sensor': 'false', 'language': 'zh-CN'})
-    locreq = tornado.httpclient.HTTPRequest(url=map_url, connect_timeout=10, request_timeout=10)
+    locreq = tornado.httpclient.HTTPRequest(url=map_url, connect_timeout=20, proxy_host='192.110.165.49', proxy_port=8180, request_timeout=20)
     locres = yield client.fetch(locreq)
     if locres.code == 200:
         try:

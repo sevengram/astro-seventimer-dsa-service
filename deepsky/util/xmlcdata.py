@@ -32,7 +32,7 @@ def text_response(touser, text, tag):
 
 
 def seventimer_response(touser, lat, lon, label):
-    image_url = 'http://www.7timer.com/v4/bin/astro.php?' + urllib.urlencode(
+    image_url = 'http://7timer.y234.cn/v4/bin/astro.php?' + urllib.urlencode(
         {'lon': lon, 'lat': lat, 'lang': 'zh-CN', 'time': int(time.time())})
     response = {'ToUserName': cdata(touser), 'FromUserName': cdata('gh_d188e2888313'), 'CreateTime': int(
         time.time()), 'MsgType': cdata('news'), 'ArticleCount': 1, 'Articles': {'item': []}, 'Tag': 'weather'}
