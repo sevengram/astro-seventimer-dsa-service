@@ -19,7 +19,7 @@ class Connector(object):
 
     def connect(self):
         self.connection = MySQLdb.connect(
-            user=self.usr, passwd=self.pwd, host='localhost', db=self.dbname, charset='utf8')
+            user=self.usr, passwd=self.pwd, host='eridanus.mysql.rds.aliyuncs.com', db=self.dbname, charset='utf8')
 
     def execute(self, query, args):
         cursor = self.connection.cursor()

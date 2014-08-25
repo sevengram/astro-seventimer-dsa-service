@@ -4,12 +4,11 @@ import MySQLdb
 
 from MySQLdb import cursors
 
-
 class Connector(object):
 
     def __init__(self, dbname):
         self.usr = 'dsa'
-        self.pwd = 'dsaeboue'
+        self.pwd = 'Dsaeboue123'
         self.dbname = dbname
         self.connect()
 
@@ -18,7 +17,7 @@ class Connector(object):
 
     def connect(self):
         self.connection = MySQLdb.connect(
-            user=self.usr, passwd=self.pwd, host='localhost', db=self.dbname, charset='utf8')
+            user=self.usr, passwd=self.pwd, host='eridanus.mysql.rds.aliyuncs.com', db=self.dbname, charset='utf8')
 
     def execute(self, query, args, usedict=False, cursorclass=MySQLdb.cursors.DictCursor):
         cursor = self.connection.cursor(cursorclass)
