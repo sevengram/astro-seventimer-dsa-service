@@ -4,6 +4,7 @@ import MySQLdb
 
 from MySQLdb import cursors
 
+
 class Connector(object):
 
     def __init__(self, dbname):
@@ -38,14 +39,17 @@ class Connector(object):
     def insert_db(self, table, dic):
         columns = ', '.join(dic.keys())
         placeholders = ', '.join(['%s'] * len(dic))
-        request = 'INSERT INTO %s (%s) VALUES (%s)' % (table, columns, placeholders)
+        request = 'INSERT INTO %s (%s) VALUES (%s)' % (
+            table, columns, placeholders)
         self.execute(request, dic.values())
 
     def replace_db(self, table, dic):
         columns = ', '.join(dic.keys())
         placeholders = ', '.join(['%s'] * len(dic))
-        request = 'REPLACE INTO %s (%s) VALUES (%s)' % (table, columns, placeholders)
-        self.execute(request, dic.values())
+        updates = ', '.join(map(lambda n: n + ' = %s', dic.keys()))
+        request = 'INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s' % (
+            table, columns, placeholders, updates)
+        self.execute(request, dic.values() * 2)
 
 
 class WechatConnector(Connector):
@@ -61,6 +65,10 @@ class WechatConnector(Connector):
 
     def add_feedback(self, dic):
         self.insert_db('feedback', dic)
+
+    def get_fakeid(self, uid):
+        request = 'SELECT fakeid FROM users WHERE uid = %s AND fakeid !=""'
+        return self.execute(request, [uid])
 
     def get_location(self, query):
         request = 'SELECT * FROM location WHERE query = %s'

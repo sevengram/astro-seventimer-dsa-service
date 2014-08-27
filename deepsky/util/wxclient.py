@@ -7,13 +7,15 @@ import tornado.gen
 import tornado.httpclient
 import tornado.curl_httpclient
 import tornado.httputil
-import sys
 import json
 import Cookie
 import time
 
+from bs4 import BeautifulSoup
+
 login_url = 'https://mp.weixin.qq.com/cgi-bin/login'
 send_url = 'https://mp.weixin.qq.com/cgi-bin/singlesend'
+message_url = 'https://mp.weixin.qq.com/cgi-bin/message'
 
 
 class CookieManager(object):
@@ -37,7 +39,7 @@ class CookieManager(object):
                 self.cookie[morsel.key] = morsel.value
 
 
-class MessageDealer(object):
+class WechatConnector(object):
 
     def __init__(self):
         self.token = ''
@@ -69,8 +71,22 @@ class MessageDealer(object):
         res = yield client.fetch(req)
         if res.code == 200:
             self.cookie_manager.set_cookie(res.headers)
-            data = json.loads(res.body)
+            data = json.loads(res.body, encoding='utf-8')
             raise tornado.gen.Return(data)
+        else:
+            raise tornado.gen.Return(None)
+
+    @tornado.gen.coroutine
+    def get_request(self, url, data):
+        client = tornado.httpclient.AsyncHTTPClient()
+        self.headers.add('cookie', self.cookie_manager.build())
+        url += '?' + urllib.urlencode(data)
+        req = tornado.httpclient.HTTPRequest(
+            url=url, method='GET', headers=self.headers, connect_timeout=60, request_timeout=60)
+        res = yield client.fetch(req)
+        if res.code == 200:
+            self.cookie_manager.set_cookie(res.headers)
+            raise tornado.gen.Return(res.body)
         else:
             raise tornado.gen.Return(None)
 
@@ -86,52 +102,45 @@ class MessageDealer(object):
         else:
             raise tornado.gen.Return(None)
 
+    def _check_same(self, timestamp, content, mtype, user):
+        if mtype == 'text':
+            return user['date_time'] == timestamp and user['content'].strip(' \t\r\n') == content.strip(' \t\r\n') and user['type'] == 1
+        elif mtype == 'location':
+            return user['date_time'] == timestamp and user['content'].startswith(
+                'http://weixin.qq.com/cgi-bin/redirectforward') and user['type'] == 1
+        elif mtype == 'image':
+            return user['date_time'] == timestamp and user['type'] == 2
+        else:
+            return False
+
+    @tornado.gen.coroutine
+    def find_user(self, timestamp, content, mtype, count, offset):
+        result = yield self.get_request(message_url, {
+            'count': count, 'offset': offset, 'day': 7, 'token': self.token})
+        try:
+            t = BeautifulSoup(result).find_all(
+                'script', {'type': 'text/javascript', 'src': ''})[-1].text
+            users = json.loads(
+                t[t.index('['):t.rindex(']') + 1], encoding='utf-8')
+        except (ValueError, IndexError):
+            raise tornado.gen.Return(None)
+
+        if not users:
+            raise tornado.gen.Return(None)
+        for i in range(0, len(users) - 1):
+            if users[i]['date_time'] < timestamp:
+                raise tornado.gen.Return(None)
+            elif self._check_same(timestamp, content, mtype, users[i]):
+                if not self._check_same(timestamp, content, mtype, users[i + 1]):
+                    raise tornado.gen.Return(users[i])
+                else:
+                    raise tornado.gen.Return(None)
+        res = yield self.find_user(timestamp, content, mtype, count, count + offset - 1)
+        raise tornado.gen.Return(res)
+
     @tornado.gen.coroutine
     def send_text_message(self, fakeid, content):
         result = yield self.post_request(send_url, {
             'token': self.token, 'lang': 'zh_CN', 'f': 'json', 'ajax': 1, 'type': 1,
             'content': content.encode('utf8'), 'tofakeid': fakeid})
         raise tornado.gen.Return(result)
-
-
-class MessageHandler(tornado.web.RequestHandler):
-
-    def initialize(self, dealer):
-        self.dealer = dealer
-        self.username = 'sevengram'
-        self.pwd = 'cbe34b794cc95deb3e5b5d390efb74d7'
-
-    def get(self):
-        self.write('empty')
-
-    @tornado.web.asynchronous
-    @tornado.gen.coroutine
-    def post(self):
-        if not self.dealer.has_login():
-            yield self.dealer.login(self.username, self.pwd)
-            if not self.dealer.has_login():
-                self.send_error(status_code=500, message='fail to login')
-                return
-
-        data = self.get_argument('data')
-        result = yield self.dealer.send_text_message('1899417504', data)
-        if result and result['base_resp']['ret'] == -3:
-            yield self.dealer.login(self.username, self.pwd)
-            if not self.dealer.has_login():
-                self.send_error(status_code=500, message='fail to login')
-                return
-            result = yield self.dealer.send_text_message('1899417504', data)
-
-        if result and result['base_resp']['ret'] == 0:
-            self.write(
-                json.dumps({'type': 'service@message', 'err': 0, 'msg': result['base_resp']['err_msg']}))
-            self.finish()
-        else:
-            self.send_error(status_code=500, message='fail to send message')
-        sys.stdout.flush()
-
-    def write_error(self, status_code, **kwargs):
-        result = {'type': 'service@message',
-                  'err': status_code, 'msg': kwargs.get('message')}
-        self.write(json.dumps(result))
-        sys.stdout.flush()

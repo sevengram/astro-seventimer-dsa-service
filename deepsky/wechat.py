@@ -98,7 +98,7 @@ def process_weather(request, **kwargs):
 
 @tornado.gen.coroutine
 def get_location(query):
-    query = query.encode('utf8')
+    query = query.encode('utf-8')
     client = tornado.curl_httpclient.CurlAsyncHTTPClient()
     map_url = "http://maps.googleapis.com/maps/api/geocode/json?" + urllib.urlencode(
         {'address': query, 'sensor': 'false', 'language': 'zh-CN'})
@@ -256,10 +256,25 @@ class WechatHandler(tornado.web.RequestHandler):
                 break
         self.write(res)
         self.finish()
-        last_query = req['Content'] if req.has_key(
-            'Content') and req['Content'] else ''
+
+        # save last query
+        last_query = req.get('Content')
+        openid = req['FromUserName']
         mysql_conn.add_user(
-            {'uid': req['FromUserName'], 'last_query': last_query, 'last_status': processed})
+            {'uid': openid, 'last_query': last_query, 'last_status': processed})
+
+        # bind fakeid
+        if req['MsgType'] in ['text', 'location', 'image']:
+            if not mysql_conn.get_fakeid(openid):
+                userinfo = json.dumps(
+                    {'uid': openid, 'timestamp': long(req['CreateTime']), "content": last_query, "type": req['MsgType']})
+                client = tornado.httpclient.AsyncHTTPClient()
+                req = tornado.httpclient.HTTPRequest(
+                    url='http://127.0.0.1/service/wxuser?' +
+                        urllib.urlencode({'cached': 0, 'userinfo': userinfo}),
+                    method='GET', headers={}, connect_timeout=30, request_timeout=120)
+                yield client.fetch(req)
+
         sys.stdout.flush()
 
     def check_signature(self):
