@@ -24,11 +24,19 @@ class WechatMsgHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def post(self):
         # check params
+        status = self.get_argument('status')
         message = self.get_argument('message')
         userinfo = self.get_argument('userinfo')
-        if not message or not userinfo:
+        if not message or not userinfo or not status:
             self.send_error(status_code=200, err=1, message='miss params')
             return
+
+        if int(status) == 0:
+            replay = message
+        elif int(status) == 1:
+            replay = u'信号传送失败，请重试'
+        else:
+            replay = u'这张图片似乎与星空无关哦, 换一张试试吧'
 
         # try login
         if not self.dealer.has_login():
@@ -56,7 +64,7 @@ class WechatMsgHandler(tornado.web.RequestHandler):
             return
 
         # send message to wechat user
-        result = yield self.dealer.send_text_message(fakeid, message)
+        result = yield self.dealer.send_text_message(fakeid, replay)
         if result and result.get('err') == 6:
             # login expired, retry
             print 'login expired, retry...'
@@ -65,7 +73,7 @@ class WechatMsgHandler(tornado.web.RequestHandler):
                 self.send_error(
                     status_code=200, err=3,  message='fail to login')
                 return
-            result = yield self.dealer.send_text_message(fakeid, message)
+            result = yield self.dealer.send_text_message(fakeid, replay)
 
         # request to service user
         if result and result.get('err') == 0:

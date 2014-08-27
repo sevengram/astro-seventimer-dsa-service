@@ -220,10 +220,9 @@ def process_astrometry(request, **kwargs):
     response = yield client.fetch(req)
     if response.code == 200:
         raise tornado.gen.Return(
-            xmlcdata.text_response(request['FromUserName'], 'wait', 'default'))
+            xmlcdata.text_response(request['FromUserName'], u'正在召唤外星人分析你的图片, 请稍候\ue10c', 'default'))
     else:
-        raise tornado.gen.Return(
-            xmlcdata.text_response(request['FromUserName'], 'error', 'default'))
+        raise tornado.gen.Return(None)
 
 
 process_dict = {
