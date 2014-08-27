@@ -23,8 +23,6 @@ class StatHandler(tornado.web.RequestHandler):
         reqbody = json.loads(self.request.body)
         dic = reqbody['data']
         getattr(self.dealer, reqbody['type'])(dic, self.request.remote_ip)
-        if reqbody['type'] == 'start_app':
-            self.write(json.dumps(self.dealer.update_info))
 
 if __name__ == '__main__':
     tornado.options.parse_command_line()
