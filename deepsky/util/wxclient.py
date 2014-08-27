@@ -117,24 +117,28 @@ class WechatConnector(object):
     def find_user(self, timestamp, content, mtype, count, offset):
         result = yield self.get_request(message_url, {
             'count': count, 'offset': offset, 'day': 7, 'token': self.token})
+        raw = BeautifulSoup(result)
         try:
-            t = BeautifulSoup(result).find_all(
+            t = raw.find_all(
                 'script', {'type': 'text/javascript', 'src': ''})[-1].text
             users = json.loads(
                 t[t.index('['):t.rindex(']') + 1], encoding='utf-8')
         except (ValueError, IndexError):
-            raise tornado.gen.Return(None)
+            users = None
 
         if not users:
-            raise tornado.gen.Return(None)
+            if raw.find('div', {'class': 'msg_content'}).text.strip().startswith(u'\u767b'):
+                raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
+            else:
+                raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
         for i in range(0, len(users) - 1):
             if users[i]['date_time'] < timestamp:
-                raise tornado.gen.Return(None)
+                raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
             elif self._check_same(timestamp, content, mtype, users[i]):
                 if not self._check_same(timestamp, content, mtype, users[i + 1]):
-                    raise tornado.gen.Return(users[i])
+                    raise tornado.gen.Return({'err': 0, 'msg': users[i]})
                 else:
-                    raise tornado.gen.Return(None)
+                    raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
         res = yield self.find_user(timestamp, content, mtype, count, count + offset - 1)
         raise tornado.gen.Return(res)
 
@@ -143,4 +147,12 @@ class WechatConnector(object):
         result = yield self.post_request(send_url, {
             'token': self.token, 'lang': 'zh_CN', 'f': 'json', 'ajax': 1, 'type': 1,
             'content': content.encode('utf8'), 'tofakeid': fakeid})
-        raise tornado.gen.Return(result)
+        try:
+            if result['base_resp']['ret'] == -3:
+                raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
+            elif result['base_resp']['ret'] == 0:
+                raise tornado.gen.Return({'err': 0, 'msg': result['base_resp']['err_msg']})
+            else:
+                raise tornado.gen.Return({'err': 5, 'msg': result['base_resp']['err_msg']})
+        except (KeyError, AttributeError, TypeError):
+            raise tornado.gen.Return({'err': 5, 'msg': 'fail to send message'})

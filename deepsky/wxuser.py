@@ -58,13 +58,26 @@ class WechatUsrHandler(tornado.web.RequestHandler):
                     self.send_error(
                         status_code=200, err=3, message='fail to login')
                     return
+
             # find user
-            user = yield self.dealer.find_user(timestamp, content, mtype, 30, 0)
-            if user:
-                fakeid = user.get('fakeid')
+            result = yield self.dealer.find_user(timestamp, content, mtype, 30, 0)
+            if result and result.get('err') == 6:
+                # login expired, retry
+                print 'login expired, retry...'
+                yield self.dealer.login(self.username, self.pwd)
+                if not self.dealer.has_login():
+                    self.send_error(
+                        status_code=200, err=3,  message='fail to login')
+                    return
+                result = yield self.dealer.find_user(timestamp, content, mtype, 30, 0)
+
+            # user found
+            if result and result.get('err') == 0 and result.get('msg'):
+                data = result.get('msg')
+                fakeid = data.get('fakeid')
                 # add cache
                 self.mysql_conn.add_user(
-                    {'uid': openid, 'fakeid': fakeid, 'nickname': user.get('nick_name')})
+                    {'uid': openid, 'fakeid': fakeid, 'nickname': data.get('nick_name')})
 
         # send request
         if fakeid:

@@ -61,7 +61,9 @@ class WechatMsgHandler(tornado.web.RequestHandler):
 
         # send message to wechat user
         result = yield self.dealer.send_text_message(fakeid, message)
-        if result and result['base_resp']['ret'] == -3:
+        if result and result.get('err') == 6:
+            # login expired, retry
+            print 'login expired, retry...'
             yield self.dealer.login(self.username, self.pwd)
             if not self.dealer.has_login():
                 self.send_error(
@@ -70,13 +72,13 @@ class WechatMsgHandler(tornado.web.RequestHandler):
             result = yield self.dealer.send_text_message(fakeid, message)
 
         # request to service user
-        if result and result['base_resp']['ret'] == 0:
+        if result and result.get('err') == 0:
             self.write(
-                json.dumps({'type': 'service@wxmessage', 'err': 0, 'msg': result['base_resp']['err_msg']}))
+                json.dumps({'type': 'service@wxmessage', 'err': 0, 'msg': result.get('msg', 'ok')}))
             self.finish()
         else:
             self.send_error(
-                status_code=200, err=5, message='fail to send message')
+                status_code=200, err=5, message=result.get('msg', 'fail to send message'))
         sys.stdout.flush()
 
     def write_error(self, status_code, **kwargs):
