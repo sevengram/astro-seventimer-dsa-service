@@ -208,7 +208,7 @@ def process_deepsky(request, **kwargs):
 
 @tornado.gen.coroutine
 def process_astrometry(request, **kwargs):
-    server_url = 'http://127.0.0.1:33900'
+    server_url = 'http://127.0.0.1/astrometry/'
     notify_url = 'http://127.0.0.1/service/wxmessage'
     client = tornado.httpclient.AsyncHTTPClient()
     userinfo = json.dumps({'uid': request['FromUserName'], 'timestamp': long(

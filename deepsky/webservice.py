@@ -26,7 +26,7 @@ if __name__ == "__main__":
             (r'/service/wxmessage', wxmessage.WechatMsgHandler, dict(dealer=wechat_connector)),
             (r'/service/wxuser', wxuser.WechatUsrHandler, dict(dealer=wechat_connector)),
             (r'/service/dsa', deepsky.DeepskyHandler, dict(dealer=deepsky.DeepskyDealer()))
-            ], debug=True)
+        ], debug=True)
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
