@@ -103,7 +103,7 @@ class WechatConnector(object):
             raise tornado.gen.Return(None)
 
     def _check_same(self, timestamp, content, mtype, user):
-        if mtype == 'text':
+        if mtype == 'text' and content:
             return user['date_time'] == timestamp and user['content'].strip(' \t\r\n') == content.strip(' \t\r\n') and user['type'] == 1
         elif mtype == 'location':
             return user['date_time'] == timestamp and user['content'].startswith(
@@ -146,7 +146,7 @@ class WechatConnector(object):
     def send_text_message(self, fakeid, content):
         result = yield self.post_request(send_url, {
             'token': self.token, 'lang': 'zh_CN', 'f': 'json', 'ajax': 1, 'type': 1,
-            'content': content.encode('utf8'), 'tofakeid': fakeid})
+            'content': content.encode('utf-8'), 'tofakeid': fakeid})
         try:
             if result['base_resp']['ret'] == -3:
                 raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})

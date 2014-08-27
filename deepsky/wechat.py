@@ -209,10 +209,12 @@ def process_deepsky(request, **kwargs):
 @tornado.gen.coroutine
 def process_astrometry(request, **kwargs):
     server_url = 'http://127.0.0.1:33900'
-    notify_url = 'http://127.0.0.1/service/message'
+    notify_url = 'http://127.0.0.1/service/wxmessage'
     client = tornado.httpclient.AsyncHTTPClient()
+    userinfo = json.dumps({'uid': request['FromUserName'], 'timestamp': long(
+        request['CreateTime']), "content": request.get('Content'), "type": request['MsgType']})
     body = urllib.urlencode(
-        {'pic_url': request['PicUrl'], 'notify_url': notify_url})
+        {'pic_url': request['PicUrl'], 'notify_url': notify_url, 'userinfo': userinfo})
     req = tornado.httpclient.HTTPRequest(
         url=server_url, method='POST', headers={}, body=body, connect_timeout=20, request_timeout=20)
     response = yield client.fetch(req)

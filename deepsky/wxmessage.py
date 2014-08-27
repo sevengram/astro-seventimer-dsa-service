@@ -39,6 +39,7 @@ class WechatMsgHandler(tornado.web.RequestHandler):
                 return
 
         # ask for fakeid
+        fakeid = None
         client = tornado.httpclient.AsyncHTTPClient()
         req = tornado.httpclient.HTTPRequest(
             url='http://127.0.0.1/service/wxuser?' +
@@ -48,15 +49,10 @@ class WechatMsgHandler(tornado.web.RequestHandler):
         res = yield client.fetch(req)
         if res.code == 200:
             data = json.loads(res.body, encoding='utf-8')
-            if data['err'] == 0:
-                fakeid = data['msg']
-            else:
-                self.send_error(
-                    status_code=200, err=data['err'], message=data['msg'])
-                return
-        else:
-            self.send_error(
-                status_code=200, err=4, message='fail to find user')
+            if data.get('err') == 0:
+                fakeid = data.get('msg')
+        if not fakeid:
+            self.send_error(status_code=200, err=4, message='fail to find user')
             return
 
         # send message to wechat user

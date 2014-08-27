@@ -34,7 +34,7 @@ class WechatUsrHandler(tornado.web.RequestHandler):
             content = userdict.get('content')
             timestamp = userdict.get('timestamp')
             mtype = userdict.get('type')
-            if not content or not timestamp or not mtype:
+            if not openid or not timestamp or not mtype:
                 self.send_error(status_code=200, err=1, message='miss params')
                 return
         except ValueError:
