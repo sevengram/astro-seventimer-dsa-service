@@ -7,7 +7,7 @@ import tornado.gen
 class Connector(object):
 
     def __init__(self, debug=False):
-        self.client = motor.MotorClient("mongodb://dsa:dsaeboue@localhost:27017/astro_data").open_sync()
+        self.client = motor.MotorClient("mongodb://dsa:dsaeboue@localhost:27017/astro_data")
         self.datadb = self.client.astro_data
         self.debug = debug
 

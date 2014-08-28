@@ -37,7 +37,10 @@ class CookieManager(object):
         for sc in headers.get_list("Set-Cookie"):
             c = Cookie.SimpleCookie(sc)
             for morsel in c.values():
-                self.cookie[morsel.key] = morsel.value
+                if morsel.value and morsel.value != 'EXPIRED':
+                    self.cookie[morsel.key] = morsel.value
+                else:
+                    self.pop(morsel.key, None)
         print 'Cookie updated:', self.cookie
 
 
