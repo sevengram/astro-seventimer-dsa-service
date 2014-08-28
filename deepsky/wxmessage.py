@@ -7,6 +7,7 @@ import tornado.curl_httpclient
 import tornado.httputil
 import sys
 import json
+import time
 import urllib
 
 
@@ -36,7 +37,7 @@ class WechatMsgHandler(tornado.web.RequestHandler):
         elif int(status) == 1:
             replay = u'信号传送失败，请重试'
         else:
-            replay = u'这张图片似乎与星空无关哦, 换一张试试吧'
+            replay = u'外星科技对这张照片无能为力, 换一张试试吧'
 
         # try login
         if not self.dealer.has_login():
@@ -67,12 +68,14 @@ class WechatMsgHandler(tornado.web.RequestHandler):
         result = yield self.dealer.send_text_message(fakeid, replay)
         if result and result.get('err') == 6:
             # login expired, retry
-            print 'login expired, retry...'
+            print 'login expired, retry...', time.ctime()
             yield self.dealer.login(self.username, self.pwd)
             if not self.dealer.has_login():
+                print 'login retry fail', time.ctime()
                 self.send_error(
                     status_code=200, err=3,  message='fail to login')
                 return
+            print 'login retry success', time.ctime()
             result = yield self.dealer.send_text_message(fakeid, replay)
 
         # request to service user

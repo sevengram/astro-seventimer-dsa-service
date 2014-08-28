@@ -6,6 +6,7 @@ import tornado.httpclient
 import tornado.curl_httpclient
 import tornado.httputil
 import sys
+import time
 import json
 
 from util import mysql
@@ -63,12 +64,14 @@ class WechatUsrHandler(tornado.web.RequestHandler):
             result = yield self.dealer.find_user(timestamp, content, mtype, 30, 0)
             if result and result.get('err') == 6:
                 # login expired, retry
-                print 'login expired, retry...'
+                print 'login expired, retry...', time.ctime()
                 yield self.dealer.login(self.username, self.pwd)
                 if not self.dealer.has_login():
+                    print 'login retry fail', time.ctime()
                     self.send_error(
                         status_code=200, err=3,  message='fail to login')
                     return
+                print 'login retry success', time.ctime()
                 result = yield self.dealer.find_user(timestamp, content, mtype, 30, 0)
 
             # user found

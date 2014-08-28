@@ -10,6 +10,7 @@ import tornado.httputil
 import json
 import Cookie
 import time
+import sys
 
 from bs4 import BeautifulSoup
 
@@ -37,6 +38,7 @@ class CookieManager(object):
             c = Cookie.SimpleCookie(sc)
             for morsel in c.values():
                 self.cookie[morsel.key] = morsel.value
+        print 'Cookie updated:', self.cookie
 
 
 class WechatConnector(object):
@@ -63,6 +65,7 @@ class WechatConnector(object):
 
     @tornado.gen.coroutine
     def post_request(self, url, data):
+        print 'Weixin post %s, data:' % url, data, time.ctime()
         client = tornado.httpclient.AsyncHTTPClient()
         self.headers.add('cookie', self.cookie_manager.build())
         body = urllib.urlencode(data)
@@ -72,6 +75,8 @@ class WechatConnector(object):
         if res.code == 200:
             self.cookie_manager.set_cookie(res.headers)
             data = json.loads(res.body, encoding='utf-8')
+            print 'Response: ', data, time.ctime()
+            sys.stdout.flush()
             raise tornado.gen.Return(data)
         else:
             raise tornado.gen.Return(None)
@@ -81,6 +86,7 @@ class WechatConnector(object):
         client = tornado.httpclient.AsyncHTTPClient()
         self.headers.add('cookie', self.cookie_manager.build())
         url += '?' + urllib.urlencode(data)
+        print 'Wexin get:', url, time.ctime()
         req = tornado.httpclient.HTTPRequest(
             url=url, method='GET', headers=self.headers, connect_timeout=60, request_timeout=60)
         res = yield client.fetch(req)
@@ -92,14 +98,17 @@ class WechatConnector(object):
 
     @tornado.gen.coroutine
     def login(self, username, pwd):
-        self.cookie_manager.clear()
+        # self.cookie_manager.clear()
+        print 'try login...', time.ctime()
         result = yield self.post_request(login_url, {'username': username, 'pwd': pwd, 'f': 'json'})
         if result and result['base_resp']['ret'] == 0:
             self.last_login = time.time()
             self.token = dict(
                 urlparse.parse_qsl(result['redirect_url']))['token']
+            print 'login success, new token:', self.token, time.ctime()
             raise tornado.gen.Return(self.token)
         else:
+            print 'login failed:', time.ctime()
             raise tornado.gen.Return(None)
 
     def _check_same(self, timestamp, content, mtype, user):
@@ -128,25 +137,40 @@ class WechatConnector(object):
 
         if not users:
             if raw.find('div', {'class': 'msg_content'}).text.strip().startswith(u'\u767b'):
+                print 'find_user failed: login expired', time.ctime()
+                sys.stdout.flush()
                 raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
             else:
+                print 'find_user failed', time.ctime()
+                sys.stdout.flush()
                 raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
         for i in range(0, len(users) - 1):
             if users[i]['date_time'] < timestamp:
+                print 'find_user failed: no match 1', time.ctime()
+                sys.stdout.flush()
                 raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
             elif self._check_same(timestamp, content, mtype, users[i]):
                 if not self._check_same(timestamp, content, mtype, users[i + 1]):
+                    print 'find_user success: ', users[i], time.ctime()
+                    sys.stdout.flush()
                     raise tornado.gen.Return({'err': 0, 'msg': users[i]})
                 else:
+                    print 'find_user failed: no match 2', time.ctime()
+                    sys.stdout.flush()
                     raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
         res = yield self.find_user(timestamp, content, mtype, count, count + offset - 1)
         raise tornado.gen.Return(res)
 
     @tornado.gen.coroutine
     def send_text_message(self, fakeid, content):
-        result = yield self.post_request(send_url, {
+        url = send_url + '?' + \
+            urllib.urlencode(
+                {'t': 'ajax-response', 'f': 'json', 'token': self.token, 'lang': 'zh_CN'})
+        result = yield self.post_request(url, {
             'token': self.token, 'lang': 'zh_CN', 'f': 'json', 'ajax': 1, 'type': 1,
             'content': content.encode('utf-8'), 'tofakeid': fakeid})
+        print 'send_text_message response', result, time.ctime()
+        sys.stdout.flush()
         try:
             if result['base_resp']['ret'] == -3:
                 raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
