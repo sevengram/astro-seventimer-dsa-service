@@ -7,7 +7,7 @@ import tornado.httpclient
 from util import xmltodict
 
 
-target_url = 'http://127.0.0.1:33600/service/wechat'
+target_url = 'http://42.96.137.0/service/wechat'
 
 text_req_body = '''<xml><ToUserName><![CDATA[gh_d188e2888313]]></ToUserName>
 <FromUserName><![CDATA[owPaGjgfstRME9boM0mE3ewHBcTQ]]></FromUserName>
@@ -48,7 +48,7 @@ class WechatTestCase(unittest.TestCase):
         self.assertNotEqual(info['Content'], command_fail_msg)
 
     def testCommandFail(self):
-        response = self.makeRequest(text_req_body % '9')
+        response = self.makeRequest(text_req_body % '8')
         self.assertEqual(response.code, 200)
         info = xmltodict.parse(response.body)['xml']
         self.assertEqual(info['Tag'], 'command')
