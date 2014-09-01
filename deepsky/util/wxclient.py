@@ -30,6 +30,12 @@ appmsg_url = base_url + 'cgi-bin/appmsg'
 
 upload_url = base_url + 'cgi-bin/filetransfer'
 
+save_material_url = base_url + 'cgi-bin/operate_appmsg'
+
+multisend_page_url = base_url + 'cgi-bin/masssendpage'
+
+multisend_url = base_url + 'cgi-bin/masssend'
+
 
 common_headers = tornado.httputil.HTTPHeaders(
     {
@@ -69,7 +75,7 @@ def encode_multipart_formdata(fields, files):
     return content_type, body
 
 
-def check_same(self, timestamp, content, mtype, user):
+def check_same(timestamp, content, mtype, user):
     if mtype == 'text' and content:
         return user['date_time'] == timestamp and user['content'].strip(' \t\r\n') == content.strip(' \t\r\n') and user['type'] == 1
     elif mtype == 'location':
@@ -84,8 +90,8 @@ def check_same(self, timestamp, content, mtype, user):
 class CookieManager(object):
 
     def __init__(self):
-        self.cookie = {'data_bizuin': '2393201154', 'slave_user': 'gh_d188e2888313',
-                       'bizuin': '2391209664'}
+        self.cookie = None
+        self.clear()
 
     def is_empty(self):
         return self.cookie.get('slave_sid', '') == '' or self.cookie.get('data_ticket', '') == ''
@@ -120,38 +126,8 @@ class WechatConnector(object):
         return self.token and not self.cookie_manager.is_empty() and time.time() - self.last_login < 60 * 10
 
     @tornado.gen.coroutine
-    def post_request(self, url, data, **kwargs):
-        headers = common_headers.copy()
-        headers.add('Cookie', self.cookie_manager.build())
-        headers.add('Accept', 'application/json, text/javascript, */*; q=0.01')
-        headers.add('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
-        headers.add('Referer', kwargs.get('referer', base_url))
-
+    def post_request(self, url, headers, data, **kwargs):
         client = tornado.httpclient.AsyncHTTPClient()
-        print 'Weixin POST url: %s\nheaders: %s\ndata: %s' % (url, headers, data)
-
-        req = tornado.httpclient.HTTPRequest(
-            url=url, method='POST', headers=headers, body=urllib.urlencode(data), connect_timeout=60, request_timeout=60)
-        res = yield client.fetch(req)
-        if res.code == 200:
-            self.cookie_manager.set_cookie(res.headers)
-            data = json.loads(res.body, encoding='utf-8')
-            raise tornado.gen.Return(data)
-        else:
-            raise tornado.gen.Return(None)
-
-    @tornado.gen.coroutine
-    def post_formdata(self, url, content_type, data, **kwargs):
-        headers = common_headers.copy()
-        headers.add('Cookie', self.cookie_manager.build())
-        headers.add('Accept', '*/*')
-        headers.add('Accept-Encoding', 'gzip,deflate')
-        headers.add('Content-Type', content_type)
-        headers.add('Referer', kwargs.get('referer', base_url))
-
-        client = tornado.httpclient.AsyncHTTPClient()
-        print 'Weixin POST formdata url: %s\nheaders: %s' % (url, headers)
-
         req = tornado.httpclient.HTTPRequest(
             url=url, method='POST', headers=headers, body=data, connect_timeout=60, request_timeout=60)
         res = yield client.fetch(req)
@@ -161,6 +137,30 @@ class WechatConnector(object):
             raise tornado.gen.Return(data)
         else:
             raise tornado.gen.Return(None)
+
+    @tornado.gen.coroutine
+    def post_data(self, url, data, **kwargs):
+        headers = common_headers.copy()
+        headers.add('Cookie', self.cookie_manager.build())
+        headers.add('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+        headers.add('Accept', kwargs.get(
+            'accept', 'application/json, text/javascript, */*; q=0.01'))
+        headers.add('Referer', kwargs.get('referer', base_url))
+        print 'Weixin POST url: %s\nheaders: %s\ndata: %s' % (url, headers, data)
+        result = yield self.post_request(url, headers, urllib.urlencode(data))
+        raise tornado.gen.Return(result)
+
+    @tornado.gen.coroutine
+    def post_formdata(self, url, content_type, data, **kwargs):
+        headers = common_headers.copy()
+        headers.add('Cookie', self.cookie_manager.build())
+        headers.add('Accept', '*/*')
+        headers.add('Accept-Encoding', 'gzip,deflate')
+        headers.add('Content-Type', content_type)
+        headers.add('Referer', kwargs.get('referer', base_url))
+        print 'Weixin POST formdata url: %s\nheaders: %s' % (url, headers)
+        result = yield self.post_request(url, headers, data)
+        raise tornado.gen.Return(result)
 
     @tornado.gen.coroutine
     def get_request(self, url, data, **kwargs):
@@ -186,7 +186,10 @@ class WechatConnector(object):
     @tornado.gen.coroutine
     def login(self, username, pwd):
         print 'try login...'
-        result = yield self.post_request(login_url, {'username': username, 'pwd': pwd, 'f': 'json'})
+        result = yield self.post_data(login_url, {
+            'username': username,
+            'pwd': pwd,
+            'f': 'json'})
         if result and result['base_resp']['ret'] == 0:
             self.last_login = time.time()
             self.token = dict(
@@ -199,10 +202,16 @@ class WechatConnector(object):
 
     @tornado.gen.coroutine
     def find_user(self, timestamp, content, mtype, count, offset):
-        referer = home_url + '?' + \
-            urllib.urlencode({'t': 'home/index', 'token': self.token, 'lang': 'zh_CN'})
+        referer = home_url + '?' + urllib.urlencode({
+            't': 'home/index',
+            'token': self.token,
+            'lang': 'zh_CN'})
         result = yield self.get_request(message_url, {
-            'count': count, 'offset': offset, 'day': 7, 'token': self.token}, referer=referer)
+            'count': count,
+            'offset': offset,
+            'day': 7,
+            'token': self.token
+        }, referer=referer)
         raw = BeautifulSoup(result)
         try:
             t = raw.find_all(
@@ -213,14 +222,17 @@ class WechatConnector(object):
             users = None
 
         if not users:
-            if raw.find('div', {'class': 'msg_content'}).text.strip().startswith(u'\u767b'):
-                print 'find_user failed: login expired'
-                sys.stdout.flush()
-                raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
-            else:
-                print 'find_user failed'
-                sys.stdout.flush()
-                raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
+            try:
+                if raw.find('div', {'class': 'msg_content'}).text.strip().startswith(u'\u767b'):
+                    print 'find_user failed: login expired'
+                    sys.stdout.flush()
+                    raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
+            except AttributeError:
+                pass
+            print 'find_user failed'
+            sys.stdout.flush()
+            raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
+
         for i in range(0, len(users) - 1):
             if users[i]['date_time'] < timestamp:
                 print 'find_user failed: no match 1'
@@ -239,12 +251,60 @@ class WechatConnector(object):
         raise tornado.gen.Return(res)
 
     @tornado.gen.coroutine
+    def get_operation_seq(self):
+        referer = home_url + '?' + urllib.urlencode({
+            't': 'home/index',
+            'token': self.token,
+            'lang': 'zh_CN'})
+        result = yield self.get_request(multisend_page_url, {
+            't': 'mass/send',
+            'lang': 'zh_CN',
+            'token': self.token
+        }, referer=referer)
+        raw = BeautifulSoup(result)
+        try:
+            t = raw.find_all(
+                'script', {'type': 'text/javascript', 'src': ''})[-1].text
+            s = t[t.find('operation_seq'):].split(',')[0]
+            seq = s[s.index('\"') + 1:s.rindex('\"')]
+        except (ValueError, IndexError):
+            seq = None
+
+        if not seq:
+            try:
+                if raw.find('div', {'class': 'msg_content'}).text.strip().startswith(u'\u767b'):
+                    print 'get_operation_seq failed: login expired'
+                    sys.stdout.flush()
+                    raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
+            except AttributeError:
+                pass
+            print 'get_operation_seq failed'
+            sys.stdout.flush()
+            raise tornado.gen.Return({'err': 10, 'msg': 'fail to get operation_seq'})
+
+        print 'get_operation_seq success: ', seq
+        sys.stdout.flush()
+        raise tornado.gen.Return({'err': 0, 'msg': seq})
+
+    @tornado.gen.coroutine
     def get_ticket(self):
-        referer = appmsg_url + '?' + \
-            urllib.urlencode({'begin': 0, 'count': 10, 't': 'media/appmsg_list',
-                             'token': self.token, 'type': '10', 'action': 'list', 'lang': 'zh_CN'})
+        referer = appmsg_url + '?' + urllib.urlencode({
+            'begin': 0,
+            'count': 10,
+            't': 'media/appmsg_list',
+            'token': self.token,
+            'type': '10',
+            'action': 'list',
+            'lang': 'zh_CN'})
         result = yield self.get_request(appmsg_url, {
-            't': 'media/appmsg_edit', 'action': 'edit', 'type': '10', 'isMul': 0, 'isNew': 1, 'lang': 'zh_CN', 'token': self.token}, referer=referer)
+            't': 'media/appmsg_edit',
+            'action': 'edit',
+            'type': '10',
+            'isMul': 0,
+            'isNew': 1,
+            'lang': 'zh_CN',
+            'token': self.token
+        }, referer=referer)
         raw = BeautifulSoup(result)
         try:
             t = raw.find_all(
@@ -255,26 +315,82 @@ class WechatConnector(object):
             ticket = None
 
         if not ticket:
-            if raw.find('div', {'class': 'msg_content'}).text.strip().startswith(u'\u767b'):
-                print 'get_ticket failed: login expired'
-                sys.stdout.flush()
-                raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
-            else:
-                print 'get_ticket failed'
-                sys.stdout.flush()
-                raise tornado.gen.Return({'err': 4, 'msg': 'fail to find user'})
+            try:
+                if raw.find('div', {'class': 'msg_content'}).text.strip().startswith(u'\u767b'):
+                    print 'get_ticket failed: login expired'
+                    sys.stdout.flush()
+                    raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
+            except AttributeError:
+                pass
+            print 'get_ticket failed'
+            sys.stdout.flush()
+            raise tornado.gen.Return({'err': 7, 'msg': 'fail to get ticket'})
+
         print 'get_ticket success: ', ticket
         sys.stdout.flush()
         raise tornado.gen.Return({'err': 0, 'msg': ticket})
 
     @tornado.gen.coroutine
+    def get_lastest_material(self, count, title):
+        referer = home_url + '?' + urllib.urlencode({
+            't': 'home/index',
+            'token': self.token,
+            'lang': 'zh_CN'})
+        result = yield self.get_request(appmsg_url, {
+            'begin': 0,
+            'count': count,
+            't': 'media/appmsg_list',
+            'token': self.token,
+            'type': '10',
+            'action': 'list',
+            'lang': 'zh_CN'
+        }, referer=referer)
+        raw = BeautifulSoup(result)
+        itemid = None
+        try:
+            t = raw.find_all(
+                'script', {'type': 'text/javascript', 'src': ''})[-1].text
+            items = json.loads(t[t.index('{'):t.rindex('}') + 1], encoding='utf-8')
+            for item in items['item']:
+                if title == item['title']:
+                    itemid = item['app_id']
+                    break
+        except (ValueError, IndexError):
+            pass
+
+        if not itemid:
+            try:
+                if raw.find('div', {'class': 'msg_content'}).text.strip().startswith(u'\u767b'):
+                    print 'get_lastest_material failed: login expired'
+                    sys.stdout.flush()
+                    raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
+            except AttributeError:
+                pass
+            print 'get_lastest_material failed'
+            sys.stdout.flush()
+            raise tornado.gen.Return({'err': 9, 'msg': 'fail to match lastest material'})
+
+        print 'get_lastest_material success: ', itemid
+        sys.stdout.flush()
+        raise tornado.gen.Return({'err': 0, 'msg': itemid})
+
+    @tornado.gen.coroutine
     def upload_image(self, ticket, filename):
-        url = upload_url + '?' + \
-            urllib.urlencode(
-                {'ticket_id': 'sevengram', 'ticket': ticket, 'f': 'json', 'token': self.token, 'lang': 'zh_CN', 'action': 'upload_material'})
-        referer = appmsg_url + '?' + \
-            urllib.urlencode({'begin': 0, 'count': 10, 't': 'media/appmsg_list',
-                             'token': self.token, 'type': '10', 'action': 'list', 'lang': 'zh_CN'})
+        url = upload_url + '?' + urllib.urlencode({
+            'ticket_id': 'sevengram',
+            'ticket': ticket,
+            'f': 'json',
+            'token': self.token,
+            'lang': 'zh_CN',
+            'action': 'upload_material'})
+        referer = appmsg_url + '?' + urllib.urlencode({
+            't': 'media/appmsg_edit',
+            'action': 'edit',
+            'type': '10',
+            'isMul': 0,
+            'isNew': 1,
+            'lang': 'zh_CN',
+            'token': self.token})
         content_type, data = encode_multipart_formdata(
             fields=[('Filename', filename.split('/')[-1]), (
                 'folder', '/cgi-bin/uploads'), ('Upload', 'Submit Query')],
@@ -293,24 +409,119 @@ class WechatConnector(object):
             raise tornado.gen.Return({'err': 5, 'msg': 'fail to post image'})
 
     @tornado.gen.coroutine
+    def save_material(self, title, content, digest, author, fileid, sourceurl):
+        url = save_material_url + '?' + urllib.urlencode({
+            't': 'ajax-response',
+            'sub': 'create',
+            'type': '10',
+            'token': self.token,
+            'lang': 'zh_CN'})
+        referer = appmsg_url + '?' + urllib.urlencode({
+            't': 'media/appmsg_edit',
+            'action': 'edit',
+            'type': '10',
+            'isMul': 0,
+            'isNew': 1,
+            'lang': 'zh_CN',
+            'token': self.token})
+        result = yield self.post_data(url, {
+            'token': self.token,
+            'lang': 'zh_CN',
+            'f': 'json',
+            'ajax': 1,
+            'type': 1,
+            'content0': content.encode('utf-8'),
+            'count': 1,
+            'random': random.random(),
+            'AppMsgId': '',
+            'vid': '',
+            'title0': title.encode('utf-8'),
+            'digest0': digest.encode('utf-8'),
+            'author0': author.encode('utf-8'),
+            'fileid0': fileid,
+            'show_cover_pic0': 1,
+            'sourceurl0': sourceurl
+        }, referer=referer, accept='text/html, */*; q=0.01')
+        print 'save_material response:', result
+        sys.stdout.flush()
+        if result and result.get('ret') == '0':
+            raise tornado.gen.Return({'err': 0, 'msg': 'ok'})
+        elif result:
+            raise tornado.gen.Return({'err': 8, 'msg': result.get('msg', 'fail to save material')})
+        else:
+            raise tornado.gen.Return({'err': 8, 'msg': 'fail to save material'})
+
+    @tornado.gen.coroutine
     def send_text_message(self, fakeid, content):
-        url = send_url + '?' + \
-            urllib.urlencode(
-                {'t': 'ajax-response', 'f': 'json', 'token': self.token, 'lang': 'zh_CN'})
-        referer = send_page_url + '?' + \
-            urllib.urlencode(
-                {'tofakeid': fakeid, 't': 'message/send', 'action': 'index', 'token': self.token, 'lang': 'zh_CN'})
-        result = yield self.post_request(url, {
-            'token': self.token, 'lang': 'zh_CN', 'f': 'json', 'ajax': 1, 'type': 1,
-            'content': content.encode('utf-8'), 'tofakeid': fakeid, 'random': random.random()}, referer=referer)
+        url = send_url + '?' + urllib.urlencode({
+            't': 'ajax-response',
+            'f': 'json',
+            'token': self.token,
+            'lang': 'zh_CN'})
+        referer = send_page_url + '?' + urllib.urlencode({
+            'tofakeid': fakeid,
+            't': 'message/send',
+            'action': 'index',
+            'token': self.token,
+            'lang': 'zh_CN'})
+        result = yield self.post_data(url, {
+            'token': self.token,
+            'lang': 'zh_CN',
+            'f': 'json',
+            'ajax': 1,
+            'type': 1,
+            'content': content.encode('utf-8'),
+            'tofakeid': fakeid,
+            'random': random.random()
+        }, referer=referer)
         print 'send_text_message response:', result
         sys.stdout.flush()
         try:
-            if result['base_resp']['ret'] == -3:
+            if result and result['base_resp']['ret'] == -3:
                 raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
-            elif result['base_resp']['ret'] == 0:
+            elif result and result['base_resp']['ret'] == 0:
                 raise tornado.gen.Return({'err': 0, 'msg': result['base_resp']['err_msg']})
             else:
                 raise tornado.gen.Return({'err': 5, 'msg': result['base_resp']['err_msg']})
         except (KeyError, AttributeError, TypeError):
             raise tornado.gen.Return({'err': 5, 'msg': 'fail to send message'})
+
+    @tornado.gen.coroutine
+    def multi_send_message(self, operation_seq, appmsgid, groupid):
+        url = multisend_url + '?' + urllib.urlencode({
+            't': 'ajax-response',
+            'token': self.token,
+            'lang': 'zh_CN'})
+        referer = multisend_page_url + '?' + urllib.urlencode({
+            't': 'mass/send',
+            'lang': 'zh_CN',
+            'token': self.token})
+        result = yield self.post_data(url, {
+            'token': self.token,
+            'lang': 'zh_CN',
+            'f': 'json',
+            'ajax': 1,
+            'type': 10,
+            'synctxweibo': 1,
+            'cardlimit': 1,
+            'sex': 0,
+            'random': random.random(),
+            'groupid': groupid,
+            'appmsgid': appmsgid,
+            'operation_seq': operation_seq,
+            'country': '',
+            'province': '',
+            'city': '',
+            'imgcode': ''
+        }, referer=referer)
+        print 'multi_send_message response:', result
+        sys.stdout.flush()
+        if result and result.get('ret') == '-20000':
+            raise tornado.gen.Return({'err': 6, 'msg': 'login expired'})
+        elif result and result.get('ret') == '64004':
+            raise tornado.gen.Return(
+                {'err': 11, 'msg': result.get('msg', 'fail to send multi message')})
+        elif result and result.get('ret') == '0':
+            raise tornado.gen.Return({'err': 0, 'msg': 'ok'})
+        else:
+            raise tornado.gen.Return({'err': 12, 'msg': 'fail to send multi message'})
