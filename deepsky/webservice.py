@@ -25,7 +25,7 @@ if __name__ == "__main__":
         handlers=[
             (r'/service/weather', seventimer.WeatherHandler),
             (r'/service/wechat', wechat.WechatHandler),
-            (r'/service/wxupload', wxupload.WechatUploadHandler, dict(dealer=wechat_connector))
+            (r'/service/wxupload', wxupload.WechatUploadHandler, dict(dealer=wechat_connector)),
             (r'/service/wxmessage', wxmessage.WechatMsgHandler, dict(dealer=wechat_connector)),
             (r'/service/wxuser', wxuser.WechatUsrHandler, dict(dealer=wechat_connector)),
             (r'/service/dsa', deepsky.DeepskyHandler, dict(dealer=deepsky.DeepskyDealer()))
