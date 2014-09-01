@@ -3,12 +3,14 @@
 import re
 import urllib
 import sys
+import time
 import json
 import hashlib
 import tornado.web
 import tornado.gen
 import tornado.httpclient
 import tornado.curl_httpclient
+import tornado.ioloop
 
 from collections import defaultdict
 
@@ -276,6 +278,9 @@ class WechatHandler(tornado.web.RequestHandler):
             {'uid': openid, 'last_query': last_query, 'last_status': processed})
 
         # bind fakeid
+        sys.stdout.flush()
+        # wait for 30s
+        yield tornado.gen.Task(tornado.ioloop.IOLoop.instance().add_timeout, time.time() + 30)
         if req['MsgType'] in ['text', 'location', 'image']:
             if not mysql_conn.get_fakeid(openid):
                 userinfo = json.dumps(
@@ -286,7 +291,6 @@ class WechatHandler(tornado.web.RequestHandler):
                         urllib.urlencode({'cached': 0, 'userinfo': userinfo}),
                     method='GET', headers={}, connect_timeout=30, request_timeout=120)
                 yield client.fetch(req)
-
         sys.stdout.flush()
 
     def check_signature(self):
