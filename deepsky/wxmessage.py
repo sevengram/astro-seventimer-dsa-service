@@ -36,6 +36,8 @@ class WechatMsgHandler(tornado.web.RequestHandler):
             replay = message
         elif int(status) == 1:
             replay = u'信号传送失败，请重试'
+        elif int(status) == 3:
+            replay = u'图像处理失败, 可能是分辨率太低了, 重新提交一次吧'
         else:
             replay = u'外星科技对这张照片无能为力, 换一张试试吧'
 

@@ -79,8 +79,9 @@ class WechatUsrHandler(tornado.web.RequestHandler):
                 data = result.get('msg')
                 fakeid = data.get('fakeid')
                 # add cache
-                self.mysql_conn.add_user(
-                    {'uid': openid, 'fakeid': fakeid, 'nickname': data.get('nick_name')})
+                if fakeid != '1899417504':
+                    self.mysql_conn.add_user(
+                        {'uid': openid, 'fakeid': fakeid, 'nickname': data.get('nick_name')})
 
         # send request
         if fakeid:

@@ -205,9 +205,13 @@ def process_deepsky(request, **kwargs):
                 request['FromUserName'], result, is_chinese(query[0])))
     raise tornado.gen.Return(None)
 
+astrometry_tasks = []
+
 
 @tornado.gen.coroutine
 def process_astrometry(request, **kwargs):
+    if request['MsgId'] in astrometry_tasks:
+        raise tornado.gen.Return(1)
     server_url = 'http://127.0.0.1/astrometry/'
     notify_url = 'http://127.0.0.1/service/wxmessage'
     client = tornado.httpclient.AsyncHTTPClient()
@@ -219,6 +223,9 @@ def process_astrometry(request, **kwargs):
         url=server_url, method='POST', headers={}, body=body, connect_timeout=20, request_timeout=20)
     response = yield client.fetch(req)
     if response.code == 200:
+        astrometry_tasks.append(request['MsgId'])
+        if len(astrometry_tasks) > 100:
+            astrometry_tasks.pop(0)
         raise tornado.gen.Return(
             xmlcdata.text_response(request['FromUserName'], u'正在召唤外星人分析你的图片, 请稍候\ue10c', 'default'))
     else:
@@ -252,7 +259,11 @@ class WechatHandler(tornado.web.RequestHandler):
         processed = False
         for p in type_dict[req['MsgType']]:
             res = yield process_dict[p](request=req, body=self.request.body)
-            if res:
+            if res == 1:
+                self.finish()
+                sys.stdout.flush()
+                return
+            elif res:
                 processed = (p != 'default')
                 break
         self.write(res)
