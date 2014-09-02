@@ -138,7 +138,7 @@ if __name__ == "__main__":
     count, limit = 0, options.retry_limit
     result = None
     while True:
-        print time.time(), 'Try to fetch apod...count:', count
+        print time.ctime(), 'Try to fetch apod...count:', count
         result = fetch_apod(max_width=options.pic_width)
         sys.stdout.flush()
         if result:
@@ -150,24 +150,24 @@ if __name__ == "__main__":
             time.sleep(options.retry_time * 60)
 
     if not result:
-        print time.time(), 'Fail to fetch apod', count
+        print time.ctime(), 'Fail to fetch apod', count
         sys.stdout.flush()
         sys.exit(-1)
 
     mid = upload_material(result)
     if not mid:
-        print time.time(), 'Fail to upload!'
+        print time.ctime(), 'Fail to upload!'
         sys.stdout.flush()
         sys.exit(-1)
-    print time.time(), 'Upload OK, mid:', mid
+    print time.ctime(), 'Upload OK, mid:', mid
     sys.stdout.flush()
 
     result = send_message(mid)
     if not result:
-        print time.time(), 'Multisend fail, status code'
+        print time.ctime(), 'Multisend fail, status code'
     else:
         if result.get('err') == 0:
-            print time.time(), 'Multisend OK', time.time()
+            print time.ctime(), 'Multisend OK'
         else:
-            print time.time(), 'Multisend fail, err msg:', result.get('msg')
+            print time.ctime(), 'Multisend fail, err msg:', result.get('msg')
     sys.stdout.flush()
