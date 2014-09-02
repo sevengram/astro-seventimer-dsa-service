@@ -123,7 +123,7 @@ class WechatConnector(object):
         self.cookie_manager = CookieManager()
 
     def has_login(self):
-        return self.token and not self.cookie_manager.is_empty() and time.time() - self.last_login < 60 * 10
+        return self.token and not self.cookie_manager.is_empty() and time.time() - self.last_login < 60 * 20
 
     @tornado.gen.coroutine
     def post_request(self, url, headers, data, **kwargs):
