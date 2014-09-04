@@ -90,7 +90,7 @@ def fetch_apod(max_width):
             target.write(f.read())
             target.close()
             small_dest = target_dir + '%s_small.jpg' % date
-            compress_image(dest, small_dest, 640)
+            compress_image(dest, small_dest, max_width)
             return {'filename': small_dest, 'title': title, 'article': article, 'author': author, 'translate': translate, 'cn_url': cn_url, 'en_url': en_url}
         return None
     except AttributeError:
