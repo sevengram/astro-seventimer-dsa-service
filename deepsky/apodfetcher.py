@@ -68,7 +68,12 @@ def fetch_apod(max_width):
     date = datetime.datetime.now().strftime('%y%m%d')
     cn_url = cn_base_url % date
     en_url = en_base_url % date
-    data = BeautifulSoup(httputil.SimpleUrlGrabber().get(cn_url))
+    raw = httputil.SimpleUrlGrabber().get(cn_url)
+    if raw:
+        data = BeautifulSoup(httputil.SimpleUrlGrabber().get(cn_url))
+    else:
+        print 'no data'
+        return None
 
     try:
         title = replace_blanks(data.find_all('center')[1].find('b').text)
@@ -102,9 +107,9 @@ def fetch_apod(max_width):
 def upload_material(data):
     body = {}
     body['filename'] = data['filename']
-    body['title'] = (u'[每日一天文圖] ' + data['title']).encode('utf-8')
+    body['title'] = (u'[每日天文一圖] ' + data['title']).encode('utf-8')
     body['content'] = (
-        u'<p><strong>%s</strong></p><p><strong>%s</strong></p><p><br/></p><p>%s</p><p><br/></p><p>资料来自:</p><p>%s</p><p>%s</p>' % (
+        u'<p><strong>%s</strong></p><p><strong>%s</strong></p><p><br/></p><p>%s</p><p><br/></p><p><strong>资料来自:</strong></p><p>%s</p><p>%s</p><p><br/></p><p style="color: rgb(37, 79, 130);"><strong>---------------</strong></p><p style="color: rgb(54, 96, 146);"><strong>欢迎关注邻家天文馆, 这里有什么好玩的呢?</strong></p><p style="color: rgb(71, 113, 162);"><strong>1.从晴天钟获取天气预报</strong></p><p style="color: rgb(89, 129, 178);"><strong>2.查询全天88星座</strong></p><p style="color: rgb(106, 145, 194);"><strong>3.查询超过3万个深空天体</strong></p><p style="color: rgb(124, 162, 210);"><strong>4.解析星空照片</strong></p><p style="color: rgb(141, 179, 226);"><strong>如需详细帮助, 请回复对应数字.</strong></p>' % (
             data['author'], data['translate'], data['article'], data['en_url'], data['cn_url'])).encode('utf-8')
     body['sourceurl'] = data['cn_url']
     body['digest'] = (data['article'][:100] + '...').encode('utf-8')

@@ -77,7 +77,8 @@ def deepsky_response(touser, info, chinese):
     match = re.search('\d', objname)
     if match:
         i = match.start()
-        if chinese:
+        #if chinese:
+        if True:
             target_url = 'http://zh.m.wikipedia.org/zh-cn/%s' % '_'.join([objname[:i], objname[i:]])
         else:
             target_url = 'http://en.m.wikipedia.org/wiki/%s' % '_'.join([objname[:i], objname[i:]])
