@@ -305,12 +305,15 @@ class WechatConnector(object):
             'lang': 'zh_CN',
             'token': self.token
         }, referer=referer)
+        ticket = None
         raw = BeautifulSoup(result)
         try:
-            t = raw.find_all(
-                'script', {'type': 'text/javascript', 'src': ''})[2].text
-            i = t.find('ticket:')
-            ticket = t[i + 8:i + 48]
+            ts = raw.find_all('script', {'type': 'text/javascript', 'src': ''})
+            for t in ts:
+                if t.text.strip(' \t\r\n').startswith('window.wx'):
+                    i = t.text.find('ticket:')
+                    ticket = t.text[i + 8:i + 48]
+                    break
         except (ValueError, IndexError):
             ticket = None
 

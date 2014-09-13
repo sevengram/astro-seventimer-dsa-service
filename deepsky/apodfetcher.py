@@ -68,11 +68,13 @@ def fetch_apod(max_width):
     date = datetime.datetime.now().strftime('%y%m%d')
     cn_url = cn_base_url % date
     en_url = en_base_url % date
+    print 'Url:', cn_url
     raw = httputil.SimpleUrlGrabber().get(cn_url)
+    print 'Fetch url OK!'
     if raw:
         data = BeautifulSoup(httputil.SimpleUrlGrabber().get(cn_url))
     else:
-        print 'no data'
+        print 'No data'
         return None
 
     try:
@@ -84,6 +86,7 @@ def fetch_apod(max_width):
         t = data.find_all('center')[-1].text
         translate = replace_blanks(t[t.find(u'\u7ffb\u8b6f'):])
         picurl = pic_base_url + data.find('center').find_all('a')[-1].get('href')
+        print 'Download image: ', picurl
         f = urllib2.urlopen(picurl)
         dest = target_dir + '%s.%s' % (date, picurl.split('.')[-1])
         with open(dest, 'wb') as target:
@@ -91,16 +94,17 @@ def fetch_apod(max_width):
             target.close()
             small_dest = target_dir + '%s_small.jpg' % date
             compress_image(dest, small_dest, max_width)
+            print 'Fetch image OK!', picurl
             return {'filename': small_dest, 'title': title, 'article': article, 'author': author, 'translate': translate, 'cn_url': cn_url, 'en_url': en_url}
         return None
-    except AttributeError:
-        print 'parse error'
+    except AttributeError, e:
+        print 'parse error', e
         return None
-    except IOError:
-        print 'IO error'
+    except IOError, e:
+        print 'IO error', e
         return None
-    except urllib2.HTTPError:
-        print 'pic url error: ', picurl
+    except urllib2.HTTPError, e:
+        print 'pic url error: ', picurl, e
         return None
 
 
