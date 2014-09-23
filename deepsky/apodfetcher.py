@@ -59,6 +59,7 @@ def compress_image(src, dest, max_width):
         f2 = open(dest, 'w')
         nw = min(max_width, w)
         nh = int(float(nw * h) / w)
+        print 'Compressing image to %dx%d' % (nw, nh)
         img.resize((nw, nh)).save(f2, 'JPEG', quality=85)
         f2.close()
         f1.close()
@@ -70,8 +71,8 @@ def fetch_apod(max_width):
     en_url = en_base_url % date
     print 'Url:', cn_url
     raw = httputil.SimpleUrlGrabber().get(cn_url)
-    print 'Fetch url OK!'
-    if raw:
+    if raw:    
+        print 'Fetch url OK!'
         data = BeautifulSoup(httputil.SimpleUrlGrabber().get(cn_url))
     else:
         print 'No data'
@@ -85,26 +86,27 @@ def fetch_apod(max_width):
                 name='p', recursive=False)]).replace(u'\u8aaa\u660e:', ''))
         t = data.find_all('center')[-1].text
         translate = replace_blanks(t[t.find(u'\u7ffb\u8b6f'):])
-        picurl = pic_base_url + data.find('center').find_all('a')[-1].get('href')
-        print 'Download image: ', picurl
+        picurl = pic_base_url + data.find('center').find('img').get('src')
+        print 'Downloading image...', picurl
         f = urllib2.urlopen(picurl)
         dest = target_dir + '%s.%s' % (date, picurl.split('.')[-1])
         with open(dest, 'wb') as target:
             target.write(f.read())
             target.close()
+            print 'Fetch image OK!'
             small_dest = target_dir + '%s_small.jpg' % date
             compress_image(dest, small_dest, max_width)
-            print 'Fetch image OK!', picurl
+            print 'Compress image OK:', small_dest
             return {'filename': small_dest, 'title': title, 'article': article, 'author': author, 'translate': translate, 'cn_url': cn_url, 'en_url': en_url}
         return None
     except AttributeError, e:
-        print 'parse error', e
+        print 'parse error:', e
         return None
     except IOError, e:
-        print 'IO error', e
+        print 'IO error:', e
         return None
     except urllib2.HTTPError, e:
-        print 'pic url error: ', picurl, e
+        print 'pic url error:', picurl, e
         return None
 
 
@@ -144,11 +146,11 @@ if __name__ == "__main__":
     if not target_dir:
         print 'You must specify target_dir by setting --picdir'
         sys.exit(-1)
-    count, limit = 0, options.retry_limit
+    count, limit = 0, int(options.retry_limit)
     result = None
     while True:
         print time.ctime(), 'Try to fetch apod...count:', count
-        result = fetch_apod(max_width=options.pic_width)
+        result = fetch_apod(max_width=int(options.pic_width))
         sys.stdout.flush()
         if result:
             break
