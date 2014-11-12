@@ -1,0 +1,15 @@
+database_name = 'abell_pn'
+file_name = 'abell_pn.dat'
+url = ''
+debug_mode = False
+search_mode = 10
+read_keys = ['alias','con','type','object','mag','brstr','size','ra','dec','ura2']
+essential_keys = ['alias','con','type','object','ra','ra_value','dec','dec_value','mag']
+unused_keys = ['ura2']
+update_keys = ['con','type','ra','ra_value','dec','dec_value','mag','brstr']
+overwrite_keys = []
+key_sep = '|'
+alias_sep = ';'
+size_unit = 'm'
+default_label = ''
+alias_label = 'Abell'

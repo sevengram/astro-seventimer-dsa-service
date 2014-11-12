@@ -1,0 +1,15 @@
+database_name = 'ugc'
+file_name = 'ugc2.csv'
+url = ''
+debug_mode = False
+search_mode = 13
+read_keys = [object, ra, dec]
+essential_keys = [object, ra, dec,ra_value, dec_value]
+unused_keys = []
+update_keys = [ra, dec,ra_value, dec_value]
+overwrite_keys = []
+key_sep = '|'
+alias_sep = ';'
+size_unit = 'm'
+default_label = 'UGC'
+alias_label = ''

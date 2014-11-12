@@ -1,0 +1,15 @@
+database_name = ''
+file_name = ''
+debug_mode = True
+search_mode = 13
+
+read_keys = [object,con,type, alias, mag, brstr,size_max,size_min,ra,dec,ura2]
+essential_keys = [object,con,type,mag]
+unused_keys = [ura2,size_max,size_min]
+update_keys = []
+overwrite_keys = []
+key_sep = '|'
+alias_sep = ';'
+size_unit = 'm'
+default_label = 'Abell'
+alias_label = 'Abell'

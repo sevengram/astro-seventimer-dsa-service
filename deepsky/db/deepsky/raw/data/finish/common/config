@@ -1,0 +1,15 @@
+database_name = 'common'
+file_name = 'common'
+url = ''
+debug_mode = False
+search_mode = 13
+read_keys = [object,alias]
+essential_keys = [object,alias]
+unused_keys = []
+update_keys = []
+overwrite_keys = []
+key_sep = '|'
+alias_sep = ';'
+size_unit = 'm'
+default_label = ''
+alias_label = ''

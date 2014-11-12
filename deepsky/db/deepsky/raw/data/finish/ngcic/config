@@ -1,0 +1,15 @@
+database_name = 'ngcic'
+file_name = 'ngcic.txt'
+url = ''
+debug_mode = False
+search_mode = 13
+read_keys = [object,type,con,ra,dec,mag,subr,size_max,size_min,pa,class,redshift,alias]
+essential_keys = [object,type,con,ra,ra_value,dec,dec_value]
+unused_keys = [size_max,size_min]
+update_keys = [object,type,con,ra,ra_value,dec,dec_value,mag,subr,size,pa,class,redshift]
+overwrite_keys = []
+key_sep = '|'
+alias_sep = ','
+size_unit = 'm'
+default_label = ''
+alias_label = ''

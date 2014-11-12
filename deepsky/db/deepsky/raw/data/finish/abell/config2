@@ -1,0 +1,15 @@
+database_name = 'abell'
+file_name = 'abell.csv'
+url = ''
+debug_mode = False
+search_mode = 5
+read_keys = [object, class, nsts, brstr, ra, dec, redshift, mag]
+essential_keys = [object, ra, dec, ra_value, dec_value]
+unused_keys = []
+update_keys = [class, nsts, brstr, ra, dec, ra_value, dec_value,redshift, mag]
+overwrite_keys = []
+key_sep = ','
+alias_sep = ';'
+size_unit = 'm'
+default_label = ''
+alias_label = ''

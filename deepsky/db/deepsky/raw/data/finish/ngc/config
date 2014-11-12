@@ -1,0 +1,15 @@
+database_name = 'ngc'
+file_name = 'constellation'
+url = 'http://www.nightskyatlas.com/ngcData.jsp?id=%s'
+debug_mode = False
+search_mode = 13
+read_keys = [object, ra, dec, size_max, size_min, pa, mag, subr, type, class]
+essential_keys = [object, ra, dec, ra_value, dec_value, type]
+unused_keys = [size_max, size_min]
+update_keys = [pa, mag, subr, type, class]
+overwrite_keys = [ra, dec, ra_value, dec_value,size]
+key_sep = 'td'
+alias_sep = ';'
+size_unit = 'm'
+default_label = ''
+alias_label = ''

@@ -1,0 +1,15 @@
+database_name = 'pln'
+file_name = 'abell_record.txt'
+url = ''
+debug_mode = False
+search_mode = 9
+read_keys = [object,alias, ra, dec, size, class, mag, brstr,subr,con,notes]
+essential_keys = [object, con]
+unused_keys = []
+update_keys = [alias, ra, dec, ra_value, dec_value, class, mag, brstr, subr,con,notes]
+overwrite_keys = [size]
+key_sep = ','
+alias_sep = ';'
+size_unit = 's'
+default_label = ''
+alias_label = ''

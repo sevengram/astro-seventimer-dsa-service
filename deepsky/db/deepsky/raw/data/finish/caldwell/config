@@ -1,0 +1,15 @@
+database_name = 'caldwell'
+file_name = 'caldwell'
+url = ''
+debug_mode = False
+search_mode = 13
+read_keys = [object,alias,mag]
+essential_keys = [object,alias,mag]
+unused_keys = []
+update_keys = [alias, mag]
+overwrite_keys = []
+key_sep = '|'
+alias_sep = ';'
+size_unit = 'm'
+default_label = ''
+alias_label = ''
