@@ -6,19 +6,20 @@ import sys
 import time
 import json
 import hashlib
+from collections import defaultdict
+
 import tornado.web
 import tornado.gen
 import tornado.httpclient
 import tornado.curl_httpclient
 import tornado.ioloop
 
-from collections import defaultdict
-
 from util import xmltodict
 from util import mysql
 from util import xmlcdata
 from util import motordb
 from util import consts
+
 
 type_dict = defaultdict(lambda: ['default'], {
     'image': ['astrometry'],
@@ -52,13 +53,14 @@ def is_weather2(request):
     else:
         return False
 
+
 #
 # Process functions
 #
 
 
 @tornado.gen.coroutine
-def process_weather1(request, **kwargs):
+def process_weather1(request):
     if is_weather1(request):
         response = yield process_weather(request)
         raise tornado.gen.Return(response)
@@ -67,7 +69,7 @@ def process_weather1(request, **kwargs):
 
 
 @tornado.gen.coroutine
-def process_weather2(request, **kwargs):
+def process_weather2(request):
     if is_weather2(request):
         response = yield process_weather(request)
         raise tornado.gen.Return(response)
@@ -76,14 +78,14 @@ def process_weather2(request, **kwargs):
 
 
 @tornado.gen.coroutine
-def process_weather(request, **kwargs):
+def process_weather(request):
     if request['MsgType'] == 'location':
         response = xmlcdata.seventimer_response(
             request['FromUserName'], request['Location_X'], request['Location_Y'], request['Label'])
         raise tornado.gen.Return(response)
     else:
         query = request['Content']
-        if query[0] < '9' and query[0] > '0':
+        if '0' < query[0] < '9':
             query = query[1:]
         location = mysql_conn.get_location(query)
         if not location:
@@ -129,8 +131,8 @@ def get_location(query):
 
 
 @tornado.gen.coroutine
-def process_default(request, **kwargs):
-    if request.has_key('Content') and request['Content']:
+def process_default(request):
+    if request.get('Content'):
         message = consts.default_format % request['Content']
     else:
         message = consts.default_response
@@ -139,22 +141,24 @@ def process_default(request, **kwargs):
 
 
 @tornado.gen.coroutine
-def process_welcome(request, **kwargs):
+def process_welcome(request):
     raise tornado.gen.Return(
         xmlcdata.text_response(request['FromUserName'], consts.welcome_direction, 'welcome'))
 
 
 @tornado.gen.coroutine
-def process_command(request, **kwargs):
-    cmd = request['Content']
-    if consts.text_commands.has_key(cmd):
-        cmd = consts.text_commands[cmd]
-    if len(cmd) == 1 and cmd <= '9' and cmd >= '0':
+def process_command(request):
+    cmd = consts.text_commands.get(request['Content'])
+    if cmd and '0' <= cmd <= '9':
         response = None
         history = mysql_conn.get_lastquery(request['FromUserName'])
         if history and not history['last_status'] and history['last_query']:
             if cmd == '1':
-                response = yield process_weather({'Content': history['last_query'], 'MsgType': 'text', 'FromUserName': request['FromUserName']})
+                response = yield process_weather({
+                    'Content': history['last_query'],
+                    'MsgType': 'text',
+                    'FromUserName': request['FromUserName']
+                })
             if not response:
                 mysql_conn.add_feedback(
                     {'uid': request['FromUserName'], 'query': history['last_query'], 'type': cmd})
@@ -168,7 +172,7 @@ def process_command(request, **kwargs):
 
 
 @tornado.gen.coroutine
-def process_constellation(request, **kwargs):
+def process_constellation(request):
     query = request['Content']
     result = yield mongo_conn.find_constellation(query)
     if result:
@@ -180,7 +184,7 @@ def process_constellation(request, **kwargs):
 
 
 @tornado.gen.coroutine
-def process_solar(request, **kwargs):
+def process_solar(request):
     query = request['Content']
     result = yield mongo_conn.find_solar(query)
     if result:
@@ -192,7 +196,7 @@ def process_solar(request, **kwargs):
 
 
 @tornado.gen.coroutine
-def process_deepsky(request, **kwargs):
+def process_deepsky(request):
     query = request['Content']
     match = re.search('\d', query)
     usetitle = match and query[:match.start()].strip().lower() in [
@@ -207,11 +211,12 @@ def process_deepsky(request, **kwargs):
                 request['FromUserName'], result, is_chinese(query[0])))
     raise tornado.gen.Return(None)
 
+
 astrometry_tasks = []
 
 
 @tornado.gen.coroutine
-def process_astrometry(request, **kwargs):
+def process_astrometry(request):
     if request['MsgId'] in astrometry_tasks:
         raise tornado.gen.Return(1)
     server_url = 'http://127.0.0.1/astrometry/'
@@ -248,7 +253,6 @@ process_dict = {
 
 
 class WechatHandler(tornado.web.RequestHandler):
-
     def get(self):
         if self.check_signature():
             self.write(self.get_argument('echostr'))
@@ -260,14 +264,15 @@ class WechatHandler(tornado.web.RequestHandler):
         res = ''
         processed = False
         for p in type_dict[req['MsgType']]:
-            res = yield process_dict[p](request=req, body=self.request.body)
-            if res == 1:
-                self.finish()
-                sys.stdout.flush()
-                return
-            elif res:
-                processed = (p != 'default')
-                break
+            if p in process_dict:
+                res = yield process_dict.get(p)(request=req, body=self.request.body)
+                if res == 1:
+                    self.finish()
+                    sys.stdout.flush()
+                    return
+                elif res:
+                    processed = (p != 'default')
+                    break
         self.write(res)
         self.finish()
 
@@ -283,8 +288,12 @@ class WechatHandler(tornado.web.RequestHandler):
         yield tornado.gen.Task(tornado.ioloop.IOLoop.instance().add_timeout, time.time() + 30)
         if req['MsgType'] in ['text', 'location', 'image']:
             if not mysql_conn.get_fakeid(openid):
-                userinfo = json.dumps(
-                    {'uid': openid, 'timestamp': long(req['CreateTime']), "content": last_query, "type": req['MsgType']})
+                userinfo = json.dumps({
+                    'uid': openid,
+                    'timestamp': long(req['CreateTime']),
+                    'content': last_query,
+                    'type': req['MsgType']
+                })
                 client = tornado.httpclient.AsyncHTTPClient()
                 req = tornado.httpclient.HTTPRequest(
                     url='http://127.0.0.1/service/wxuser?' +
@@ -313,4 +322,4 @@ def contains(source, group):
 
 
 def is_chinese(uchar):
-    return uchar >= u'\u4e00' and uchar <= u'\u9fa5'
+    return u'\u4e00' <= uchar <= u'\u9fa5'

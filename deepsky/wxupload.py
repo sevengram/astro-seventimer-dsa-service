@@ -1,17 +1,14 @@
 # -*- coding:utf8 -*-
 
-import tornado.web
-import tornado.gen
-import tornado.httpclient
-import tornado.curl_httpclient
-import tornado.httputil
 import sys
 import json
 import time
 
+import tornado.web
+import tornado.gen
+
 
 class WechatUploadHandler(tornado.web.RequestHandler):
-
     def initialize(self, dealer):
         self.dealer = dealer
         self.username = 'sevengram'
@@ -51,7 +48,7 @@ class WechatUploadHandler(tornado.web.RequestHandler):
             if not self.dealer.has_login():
                 print 'login retry fail', time.ctime()
                 self.send_error(
-                    status_code=200, err=3,  message='fail to login')
+                    status_code=200, err=3, message='fail to login')
                 return
             print 'login retry success', time.ctime()
             result = yield self.dealer.get_ticket()
@@ -60,7 +57,8 @@ class WechatUploadHandler(tornado.web.RequestHandler):
         if result.get('err') == 0 and result.get('msg'):
             upload_result = yield self.dealer.upload_image(result.get('msg'), filename.encode('utf-8'))
             if upload_result.get('err') == 0:
-                save_result = yield self.dealer.save_material(title, content, digest, author, upload_result.get('msg'), sourceurl)
+                save_result = yield self.dealer.save_material(title, content, digest, author, upload_result.get('msg'),
+                                                              sourceurl)
                 if save_result.get('err') == 0:
                     search_result = yield self.dealer.get_lastest_material(10, title)
                     self.write(
@@ -74,7 +72,7 @@ class WechatUploadHandler(tornado.web.RequestHandler):
                 self.send_error(status_code=200, err=upload_result.get(
                     'err'), message=upload_result.get('msg'))
         else:
-            self.send_error(status_code=200, err=result.get('err'),  message=result.get('msg'))
+            self.send_error(status_code=200, err=result.get('err'), message=result.get('msg'))
 
     def write_error(self, status_code, **kwargs):
         result = {'type': 'service@wxupload',

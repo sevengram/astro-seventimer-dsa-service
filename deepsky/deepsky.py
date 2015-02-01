@@ -1,16 +1,16 @@
 # -*- coding:utf8 -*-
 
-import tornado.web
 import time
 import datetime
 import json
 import sys
 
+import tornado.web
+
 from util import mongo
 
 
 class DeepskyHandler(tornado.web.RequestHandler):
-
     def initialize(self, dealer):
         self.dealer = dealer
 
@@ -20,14 +20,14 @@ class DeepskyHandler(tornado.web.RequestHandler):
     def post(self):
         try:
             reqbody = json.loads(self.request.body)
-            if (reqbody['type'] == 'query'):
+            if reqbody['type'] == 'query':
                 query = reqbody['param']
                 print("[QUERY]: %s" % query)
                 result = self.dealer.userlist(
                     query['user'], query['mag'], query['lat'], typ=query['type'])
                 self.set_header('content-type', 'text/plain')
                 self.write(json.dumps(result))
-            elif (reqbody['type'] == 'upload'):
+            elif reqbody['type'] == 'upload':
                 upload = reqbody['param']
                 print("[UPLOAD]: %s" % upload)
                 self.dealer.upload_record(upload['user'], upload['records'])
@@ -46,11 +46,10 @@ class DeepskyHandler(tornado.web.RequestHandler):
 
 
 class DeepskyDealer(object):
-
     def __init__(self):
         self.conn = mongo.Connector(debug=False)
 
-    def userlist(self, username, mag, lat, typ=[]):
+    def userlist(self, username, mag, lat, typ=None):
         return self.conn.autolist('deepsky', username, mag, lat, typ)
 
     def upload_record(self, username, records):

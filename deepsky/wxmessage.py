@@ -1,18 +1,16 @@
 # -*- coding:utf8 -*-
 
-import tornado.web
-import tornado.gen
-import tornado.httpclient
-import tornado.curl_httpclient
-import tornado.httputil
 import sys
 import json
 import time
 import urllib
 
+import tornado.web
+import tornado.gen
+import tornado.httpclient
+
 
 class WechatMsgHandler(tornado.web.RequestHandler):
-
     def initialize(self, dealer):
         self.dealer = dealer
         self.username = 'sevengram'
@@ -75,7 +73,7 @@ class WechatMsgHandler(tornado.web.RequestHandler):
             if not self.dealer.has_login():
                 print 'login retry fail', time.ctime()
                 self.send_error(
-                    status_code=200, err=3,  message='fail to login')
+                    status_code=200, err=3, message='fail to login')
                 return
             print 'login retry success', time.ctime()
             result = yield self.dealer.send_text_message(fakeid, replay)

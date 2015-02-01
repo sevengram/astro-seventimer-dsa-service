@@ -1,9 +1,11 @@
 #! /usr/bin/env python2
 # -*- coding:utf8 -*-
 
+import tornado.web
 import tornado.httpserver
 import tornado.ioloop
 import tornado.options
+from tornado.options import define, options
 
 import deepsky
 import seventimer
@@ -12,10 +14,8 @@ import wxmessage
 import wxuser
 import wxupload
 import wxmultisend
-
-
-from tornado.options import define, options
 from util import wxclient
+
 
 define("port", default=33600, help="run on the given port", type=int)
 

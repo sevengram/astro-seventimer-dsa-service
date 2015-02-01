@@ -16,7 +16,6 @@ class ParsingInterrupted(Exception):
 
 
 class _DictSAXHandler(object):
-
     def __init__(self,
                  item_depth=0,
                  item_callback=lambda *args: True,
@@ -65,7 +64,7 @@ class _DictSAXHandler(object):
             return attrs
         return self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
 
-    def startElement(self, full_name, attrs):
+    def start_element(self, full_name, attrs):
         name = self._build_name(full_name)
         attrs = self._attrs_to_dict(attrs)
         self.path.append((name, attrs or None))
@@ -80,7 +79,7 @@ class _DictSAXHandler(object):
             self.item = attrs or None
             self.data = None
 
-    def endElement(self, full_name):
+    def end_element(self, full_name):
         name = self._build_name(full_name)
         if len(self.path) == self.item_depth:
             item = self.item
@@ -131,8 +130,7 @@ class _DictSAXHandler(object):
         return item
 
 
-def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
-          namespace_separator=':', **kwargs):
+def parse(xml_input, encoding='utf-8', process_namespaces=False, namespace_separator=':', **kwargs):
     """Parse the given XML input and convert it into a dictionary.
 
     `xml_input` can either be a `string` or a file-like object.
@@ -140,19 +138,6 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
     If `xml_attribs` is `True`, element attributes are put in the dictionary
     among regular child elements, using `@` as a prefix to avoid collisions. If
     set to `False`, they are just ignored.
-
-    Simple example::
-
-        >>> doc = xmltodict.parse(\"\"\"
-        ... <a prop="x">
-        ...   <b>1</b>
-        ...   <b>2</b>
-        ... </a>
-        ... \"\"\")
-        >>> doc['a']['@prop']
-        u'x'
-        >>> doc['a']['b']
-        [u'1', u'2']
 
     If `item_depth` is `0`, the function returns a dictionary for the root
     element (default behavior). Otherwise, it calls `item_callback` every time
@@ -166,11 +151,11 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
 
     Streaming example::
 
-        >>> def handle(path, item):
-        ...     print 'path:%s item:%s' % (path, item)
-        ...     return True
+        def handle(path, item):
+        ...  print 'path:%s item:%s' % (path, item)
+        ...  return True
         ...
-        >>> xmltodict.parse(\"\"\"
+        xmltodict.parse(\"\"\"
         ... <a prop="x">
         ...   <b>1</b>
         ...   <b>2</b>
@@ -182,20 +167,21 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
     and `value` as positional arguments and returns a new `(key, value)` pair
     where both `key` and `value` may have changed. Usage example::
 
-        >>> def postprocessor(path, key, value):
-        ...     try:
-        ...         return key + ':int', int(value)
-        ...     except (ValueError, TypeError):
-        ...         return key, value
-        >>> xmltodict.parse('<a><b>1</b><b>2</b><b>x</b></a>',
-        ...                 postprocessor=postprocessor)
+        def postprocessor(path, key, value):
+        ... try:
+        ...     return key + ':int', int(value)
+        ... except (ValueError, TypeError):
+        ...     return key, value
+        xmltodict.parse('<a><b>1</b><b>2</b><b>x</b></a>',
+        ...              postprocessor=postprocessor)
+
         OrderedDict([(u'a', OrderedDict([(u'b:int', [1, 2]), (u'b', u'x')]))])
 
     You can pass an alternate version of `expat` (such as `defusedexpat`) by
     using the `expat` parameter. E.g:
 
-        >>> import defusedexpat
-        >>> xmltodict.parse('<a>hello</a>', expat=defusedexpat.pyexpat)
+        import defusedexpat
+        xmltodict.parse('<a>hello</a>', expat=defusedexpat.pyexpat)
         OrderedDict([(u'a', u'hello')])
 
     """
@@ -209,8 +195,8 @@ def parse(xml_input, encoding='utf-8', expat=expat, process_namespaces=False,
     except AttributeError:
         # Jython's expat does not support ordered_attributes
         pass
-    parser.StartElementHandler = handler.startElement
-    parser.EndElementHandler = handler.endElement
+    parser.StartElementHandler = handler.start_element
+    parser.EndElementHandler = handler.end_element
     parser.CharacterDataHandler = handler.characters
     try:
         parser.ParseFile(xml_input)
@@ -287,7 +273,7 @@ def unparse(input_dict, output=None, encoding='utf-8', **kwargs):
     """
     ((key, value),) = input_dict.items()
     must_return = False
-    if output == None:
+    if not output:
         output = StringIO()
         must_return = True
     content_handler = XMLGenerator(output, encoding)

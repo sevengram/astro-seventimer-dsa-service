@@ -71,13 +71,14 @@ def fetch_apod(max_width):
     en_url = en_base_url % date
     print 'Url:', cn_url
     raw = httputil.SimpleUrlGrabber().get(cn_url)
-    if raw:    
+    if raw:
         print 'Fetch url OK!'
         data = BeautifulSoup(httputil.SimpleUrlGrabber().get(cn_url))
     else:
         print 'No data'
         return None
 
+    picurl = ''
     try:
         title = replace_blanks(data.find_all('center')[1].find('b').text)
         author = replace_blanks(data.find_all('center')[1].text).replace(title, '').strip()
@@ -97,8 +98,8 @@ def fetch_apod(max_width):
             small_dest = target_dir + '%s_small.jpg' % date
             compress_image(dest, small_dest, max_width)
             print 'Compress image OK:', small_dest
-            return {'filename': small_dest, 'title': title, 'article': article, 'author': author, 'translate': translate, 'cn_url': cn_url, 'en_url': en_url}
-        return None
+            return {'filename': small_dest, 'title': title, 'article': article, 'author': author,
+                    'translate': translate, 'cn_url': cn_url, 'en_url': en_url}
     except AttributeError, e:
         print 'parse error:', e
         return None
@@ -111,30 +112,43 @@ def fetch_apod(max_width):
 
 
 def upload_material(data):
-    body = {}
-    body['filename'] = data['filename']
-    body['title'] = (u'[每日天文一圖] ' + data['title']).encode('utf-8')
-    body['content'] = (
-        u'<p><strong>%s</strong></p><p><strong>%s</strong></p><p><br/></p><p>%s</p><p><br/></p><p><strong>资料来自:</strong></p><p>%s</p><p>%s</p><p><br/></p><p style="color: rgb(37, 79, 130);"><strong>---------------</strong></p><p style="color: rgb(54, 96, 146);"><strong>欢迎关注邻家天文馆, 这里有什么好玩的呢?</strong></p><p style="color: rgb(71, 113, 162);"><strong>1.从晴天钟获取天气预报</strong></p><p style="color: rgb(89, 129, 178);"><strong>2.查询全天88星座</strong></p><p style="color: rgb(106, 145, 194);"><strong>3.查询超过3万个深空天体</strong></p><p style="color: rgb(124, 162, 210);"><strong>4.解析星空照片</strong></p><p style="color: rgb(141, 179, 226);"><strong>如需详细帮助, 请回复对应数字.</strong></p>' % (
-            data['author'], data['translate'], data['article'], data['en_url'], data['cn_url'])).encode('utf-8')
-    body['sourceurl'] = data['cn_url']
-    body['digest'] = (data['article'][:100] + '...').encode('utf-8')
+    body = {
+        'filename': data['filename'],
+        'title': (u'[每日天文一圖] ' + data['title']).encode('utf-8'),
+        'content': (
+            u'<p><strong>%s</strong></p>'
+            u'<p><strong>%s</strong></p>'
+            u'<p><br/></p>'
+            u'<p>%s</p>'
+            u'<p><br/></p>'
+            u'<p><strong>资料来自:</strong></p>'
+            u'<p>%s</p><p>%s</p><p><br/></p>'
+            u'<p style="color: rgb(37, 79, 130);"><strong>---------------</strong></p>'
+            u'<p style="color: rgb(54, 96, 146);"><strong>欢迎关注邻家天文馆, 这里有什么好玩的呢?</strong></p>'
+            u'<p style="color: rgb(71, 113, 162);"><strong>1.从晴天钟获取天气预报</strong></p>'
+            u'<p style="color: rgb(89, 129, 178);"><strong>2.查询全天88星座</strong></p>'
+            u'<p style="color: rgb(106, 145, 194);"><strong>3.查询超过3万个深空天体</strong></p>'
+            u'<p style="color: rgb(124, 162, 210);"><strong>4.解析星空照片</strong></p>'
+            u'<p style="color: rgb(141, 179, 226);"><strong>如需详细帮助, 请回复对应数字.</strong></p>' % (
+                data['author'], data['translate'], data['article'], data['en_url'], data['cn_url'])).encode('utf-8'),
+        'sourceurl': data['cn_url'], 'digest': (data['article'][:100] + '...').encode('utf-8')}
 
     client = tornado.httpclient.HTTPClient()
     req = tornado.httpclient.HTTPRequest(
         url=upload_url, method='POST', headers={}, body=urllib.urlencode(body), connect_timeout=60, request_timeout=60)
     res = client.fetch(req)
     if res.code == 200:
-        result = json.loads(res.body, encoding='utf-8')
-        if result.get('err') == 0:
-            return result.get('msg')
+        r = json.loads(res.body, encoding='utf-8')
+        if r.get('err') == 0:
+            return r.get('msg')
     return None
 
 
-def send_message(mid):
+def send_message(msgid):
     client = tornado.httpclient.HTTPClient()
     req = tornado.httpclient.HTTPRequest(
-        url=send_url, method='POST', headers={}, body=urllib.urlencode({'appmsgid': mid}), connect_timeout=60, request_timeout=60)
+        url=send_url, method='POST', headers={}, body=urllib.urlencode({'appmsgid': msgid}), connect_timeout=60,
+        request_timeout=60)
     res = client.fetch(req)
     if res.code == 200:
         return json.loads(res.body, encoding='utf-8')

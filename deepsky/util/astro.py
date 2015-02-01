@@ -140,14 +140,14 @@ def alias_filter(alias):
 
 def get_description(info):
     article = info['object']
-    chinese_con = cons[info['con']] if info.has_key('con') else '?'
-    if info.has_key('alias'):
+    chinese_con = cons[info['con']] if 'con' in info else '?'
+    if 'alias' in info:
         aliases = filter(alias_filter, info['alias'])
         if aliases:
             article += ' ( %s ) ' % ', '.join(aliases)
-    if info.has_key('type') and types.has_key(info['type']):
+    if info.get('type') in types:
         desc = ''
-        if info['type'] == 'GALXY' and info.has_key('class') and info['class']:
+        if info['type'] == 'GALXY' and info.get('class'):
             galclass = info['class']
             if galclass.startswith('SB'):
                 desc = u'棒旋'
@@ -160,17 +160,17 @@ def get_description(info):
         article += u'是位于%s的%s%s. ' % (chinese_con, desc, types[info['type']])
     else:
         article += u'位于%s. ' % chinese_con
-    if info.has_key('ra') and info['ra']:
+    if info.get('ra'):
         ras = info['ra'].split()
-        format = u'赤经 %sh%sm' if len(ras) == 2 else u'赤经 %sh%sm%ss'
-        article += format % tuple(ras)
-    if info.has_key('dec') and info['dec']:
+        f = u'赤经 %sh%sm' if len(ras) == 2 else u'赤经 %sh%sm%ss'
+        article += f % tuple(ras)
+    if info.get('dec'):
         decs = info['dec'].split()
-        format = u', 赤纬 %s°%s\'' if len(decs) == 2 else u', 赤纬 %s°%s\'%s"'
-        article += format % tuple(decs)
-    if info.has_key('mag') and info['mag'] < 30:
+        f = u', 赤纬 %s°%s\'' if len(decs) == 2 else u', 赤纬 %s°%s\'%s"'
+        article += f % tuple(decs)
+    if info.get('mag') and info['mag'] < 30:
         article += u', 视星等 %+.2f' % info['mag']
-    if info.has_key('size') and info['size']:
+    if info.get('size'):
         article += u', 视面积 %s' % info['size']
 
     article += '.'

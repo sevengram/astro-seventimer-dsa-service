@@ -1,12 +1,10 @@
 # -*- coding:utf8 -*-
 
 import MySQLdb
-
-from MySQLdb import cursors
+import MySQLdb.cursors
 
 
 class Connector(object):
-
     def __init__(self, dbname):
         self.usr = 'dsa'
         self.pwd = 'Dsaeboue123'
@@ -20,7 +18,7 @@ class Connector(object):
         self.connection = MySQLdb.connect(
             user=self.usr, passwd=self.pwd, host='eridanus.mysql.rds.aliyuncs.com', db=self.dbname, charset='utf8')
 
-    def execute(self, query, args, usedict=False, cursorclass=MySQLdb.cursors.DictCursor):
+    def execute(self, query, args, cursorclass=MySQLdb.cursors.DictCursor):
         cursor = self.connection.cursor(cursorclass)
         rs = None
         try:
@@ -53,7 +51,6 @@ class Connector(object):
 
 
 class WechatConnector(Connector):
-
     def __init__(self):
         super(WechatConnector, self).__init__('wechat')
 

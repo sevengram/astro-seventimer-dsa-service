@@ -4,7 +4,6 @@ import pymongo
 
 
 class Connector(object):
-
     def __init__(self, debug=False):
         self.connection = pymongo.Connection('localhost', 27017)
         self.datadb = self.connection.astro_data
@@ -18,10 +17,10 @@ class Connector(object):
     def __del__(self):
         self.connection.close()
 
-    def autolist(self, table, username, mag, lat, typ=[]):
+    def autolist(self, table, username, mag, lat, typ=None):
         collection = getattr(self.datadb, table)
         query = {}
-        if len(typ) != 0:
+        if typ:
             query['type'] = {'$in': typ}
         if lat > 0:
             query['dec_value'] = {'$gt': lat - 90}
@@ -33,19 +32,19 @@ class Connector(object):
         while True:
             try:
                 item = cursor.next()
-                if not item.has_key('size'):
+                if not 'size' in item:
                     item['size'] = '-'
-                if not item.has_key('type'):
+                if not 'type' in item:
                     item['type'] = 'NONEX'
-                if not item.has_key('con'):
+                if not 'con' in item:
                     item['con'] = 'N/A'
-                if not item.has_key('mag'):
+                if not 'mag' in item:
                     item['mag'] = 99.9
                 if not self.is_observerd(username, item):
                     del item['_id']
                     self.add_ssinfo(item)
                     result.append(item)
-            except StopIteration, e:
+            except StopIteration:
                 break
         return result
 
@@ -53,18 +52,18 @@ class Connector(object):
         result = []
         for target in targets:
             r = self.ssinfo.find_one({'skysafari_info.ObjectID': target['ObjectID']})
-            if r != None:
+            if r:
                 if not self.is_observerd(username, r):
                     src_collection = getattr(self.datadb, r['ref'])
                     item = src_collection.find_one({'object': r['object']})
-                    if item != None:
-                        if not item.has_key('size'):
+                    if item:
+                        if not 'size' in item:
                             item['size'] = '-'
-                        if not item.has_key('type'):
+                        if not 'type' in item:
                             item['type'] = 'NONEX'
-                        if not item.has_key('con'):
+                        if not 'con' in item:
                             item['con'] = 'N/A'
-                        if not item.has_key('mag'):
+                        if not 'mag' in item:
                             item['mag'] = 99.9
                         del item['_id']
                         item['ssinfo'] = r['skysafari_info']
@@ -78,20 +77,20 @@ class Connector(object):
     def is_observerd(self, username, item):
         collection = getattr(self.userdb, username).records
         r = collection.find_one({'object': item['object']})
-        return r != None
+        return r is not None
 
     def add_ssinfo(self, item):
         r = self.ssinfo.find_one({'object': item['object']})
         if not r:
             r = self.ssinfo.find_one({'alias': item['object']})
-        if item.has_key('alias') and not r:
+        if 'alias' in item and not r:
             for alias in item['alias']:
                 r = self.ssinfo.find_one({'object': alias})
                 if not r:
                     r = self.ssinfo.find_one({'alias': alias})
-                if r != None:
+                if r:
                     break
-        if r != None:
+        if r:
             item['ssinfo'] = r['skysafari_info']
         else:
             print("[WARNING] No ssinfo: %s" % item)
@@ -99,19 +98,19 @@ class Connector(object):
     def add_skylist_record(self, username, ssid, observing_time):
         target_collection = getattr(self.userdb, username).records
         r = self.ssinfo.find_one({'skysafari_info.ObjectID': ssid})
-        if r != None:
+        if r:
             src_collection = getattr(self.datadb, r['ref'])
             obj = src_collection.find_one({'object': r['object']})
-            if obj != None:
+            if obj:
                 history = target_collection.find_one({'data.id': obj['_id']})
                 if not history:
                     item = {'object': obj['object'], 'history': observing_time, 'data': {
-                            'database': self.datadb.name, 'collection': r['ref'], 'id': obj['_id']}}
-                    if obj.has_key('alias'):
+                        'database': self.datadb.name, 'collection': r['ref'], 'id': obj['_id']}}
+                    if 'alias' in obj:
                         item['alias'] = obj['alias']
-                    if obj.has_key('mag'):
+                    if 'mag' in obj:
                         item['mag'] = obj['mag']
-                    if obj.has_key('type'):
+                    if 'type' in obj:
                         item['type'] = obj['type']
                     print("[INFO] Add new record %s" % item)
                     self.__insert__(target_collection, item)

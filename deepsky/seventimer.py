@@ -1,18 +1,17 @@
 # -*- coding:utf8 -*-
 
-import tornado.gen
-import tornado.httpclient
-import tornado.web
-
 import time
 import json
 import urllib
 import datetime
+
+import tornado.gen
+import tornado.httpclient
+import tornado.web
 import ephem
 
 
 class WeatherHandler(tornado.web.RequestHandler):
-
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def post(self):
@@ -28,8 +27,7 @@ class WeatherHandler(tornado.web.RequestHandler):
             body['solar'] = get_suninfo(
                 lon, lat, datetime.datetime.strptime(body['init'], '%Y%m%d%H'), 4)
             end_time = time.time()
-            result = {'type': 'service@weather', 'err': 0, 'data':
-                      body, 'delay': long((end_time - start_time) * 1000)}
+            result = {'type': 'service@weather', 'err': 0, 'data': body, 'delay': long((end_time - start_time) * 1000)}
             self.write(result)
             self.finish()
         else:
@@ -54,7 +52,7 @@ def get_suninfo(lon, lat, start_time, days):
             next_time = observer.next_rising(sun).datetime()
             result['rise_set'].append(next_time.strftime('%Y%m%d%H%M'))
             observer.date = next_time
-        except (ephem.NeverUpError, ephem.AlwaysUpError), e:
+        except ephem.NeverUpError, ephem.AlwaysUpError:
             observer.date = observer.date.datetime(
             ) + datetime.timedelta(days=1)
     observer.date = start_time
@@ -63,7 +61,7 @@ def get_suninfo(lon, lat, start_time, days):
             next_time = observer.next_setting(sun).datetime()
             result['rise_set'].append(next_time.strftime('%Y%m%d%H%M'))
             observer.date = next_time
-        except (ephem.NeverUpError, ephem.AlwaysUpError), e:
+        except ephem.NeverUpError, ephem.AlwaysUpError:
             observer.date = observer.date.datetime(
             ) + datetime.timedelta(days=1)
     observer.date = start_time
@@ -73,7 +71,7 @@ def get_suninfo(lon, lat, start_time, days):
             next_time = observer.next_rising(sun).datetime()
             result['twilight'].append(next_time.strftime('%Y%m%d%H%M'))
             observer.date = next_time
-        except (ephem.NeverUpError, ephem.AlwaysUpError), e:
+        except ephem.NeverUpError, ephem.AlwaysUpError:
             observer.date = observer.date.datetime(
             ) + datetime.timedelta(days=1)
     observer.date = start_time
@@ -82,7 +80,7 @@ def get_suninfo(lon, lat, start_time, days):
             next_time = observer.next_setting(sun).datetime()
             result['twilight'].append(next_time.strftime('%Y%m%d%H%M'))
             observer.date = next_time
-        except (ephem.NeverUpError, ephem.AlwaysUpError), e:
+        except ephem.NeverUpError, ephem.AlwaysUpError:
             observer.date = observer.date.datetime(
             ) + datetime.timedelta(days=1)
     return result

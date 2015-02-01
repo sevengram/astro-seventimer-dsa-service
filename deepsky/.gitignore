@@ -4,3 +4,5 @@
 *.orig
 *.swp
 *.pyc
+
+.idea

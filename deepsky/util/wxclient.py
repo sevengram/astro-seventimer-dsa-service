@@ -36,13 +36,13 @@ multisend_page_url = base_url + 'cgi-bin/masssendpage'
 
 multisend_url = base_url + 'cgi-bin/masssend'
 
-
 common_headers = tornado.httputil.HTTPHeaders(
     {
         "Connection": "keep-alive",
         "Origin": base_url,
         "X-Requested-With": "XMLHttpRequest",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.143 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/36.0.1985.143 Safari/537.36",
         "Accept-Encoding": "gzip,deflate,sdch",
         "Accept-Language": "zh-CN,zh;q=0.8"
     })
@@ -53,31 +53,32 @@ def get_content_type(filename):
 
 
 def encode_multipart_formdata(fields, files):
-    BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
-    CRLF = '\r\n'
-    L = []
+    boundary = '----------ThIs_Is_tHe_bouNdaRY_$'
+    crlf = '\r\n'
+    l = []
     for (key, value) in fields:
-        L.append('--' + BOUNDARY)
-        L.append('Content-Disposition: form-data; name="%s"' % key)
-        L.append('')
-        L.append(value)
+        l.append('--' + boundary)
+        l.append('Content-Disposition: form-data; name="%s"' % key)
+        l.append('')
+        l.append(value)
     for (key, filename, value) in files:
-        L.append('--' + BOUNDARY)
-        L.append('Content-Disposition: form-data; name="%s"; filename="%s"' %
+        l.append('--' + boundary)
+        l.append('Content-Disposition: form-data; name="%s"; filename="%s"' %
                  (key, filename.split('/')[-1]))
-        L.append('Content-Type: %s' % get_content_type(filename))
-        L.append('')
-        L.append(value)
-    L.append('--' + BOUNDARY + '--')
-    L.append('')
-    body = CRLF.join(L)
-    content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
+        l.append('Content-Type: %s' % get_content_type(filename))
+        l.append('')
+        l.append(value)
+    l.append('--' + boundary + '--')
+    l.append('')
+    body = crlf.join(l)
+    content_type = 'multipart/form-data; boundary=%s' % boundary
     return content_type, body
 
 
 def check_same(timestamp, content, mtype, user):
     if mtype == 'text' and content:
-        return user['date_time'] == timestamp and user['content'].strip(' \t\r\n') == content.strip(' \t\r\n') and user['type'] == 1
+        return user['date_time'] == timestamp and user['content'].strip(
+            ' \t\r\n') == content.strip(' \t\r\n') and user['type'] == 1
     elif mtype == 'location':
         return user['date_time'] == timestamp and user['content'].startswith(
             'http://weixin.qq.com/cgi-bin/redirectforward') and user['type'] == 1
@@ -88,7 +89,6 @@ def check_same(timestamp, content, mtype, user):
 
 
 class CookieManager(object):
-
     def __init__(self):
         self.cookie = None
         self.clear()
@@ -116,7 +116,6 @@ class CookieManager(object):
 
 
 class WechatConnector(object):
-
     def __init__(self):
         self.token = ''
         self.last_login = 0
@@ -126,7 +125,7 @@ class WechatConnector(object):
         return self.token and not self.cookie_manager.is_empty() and time.time() - self.last_login < 60 * 20
 
     @tornado.gen.coroutine
-    def post_request(self, url, headers, data, **kwargs):
+    def post_request(self, url, headers, data):
         client = tornado.httpclient.AsyncHTTPClient()
         req = tornado.httpclient.HTTPRequest(
             url=url, method='POST', headers=headers, body=data, connect_timeout=60, request_timeout=60)
