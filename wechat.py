@@ -265,7 +265,7 @@ class WechatHandler(tornado.web.RequestHandler):
         processed = False
         for p in type_dict[req['MsgType']]:
             if p in process_dict:
-                res = yield process_dict.get(p)(request=req, body=self.request.body)
+                res = yield process_dict.get(p)(request=req)
                 if res == 1:
                     self.finish()
                     sys.stdout.flush()
