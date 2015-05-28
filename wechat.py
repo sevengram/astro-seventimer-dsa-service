@@ -148,8 +148,11 @@ def process_welcome(request):
 
 @tornado.gen.coroutine
 def process_command(request):
-    cmd = consts.text_commands.get(request['Content'])
-    if cmd and '0' <= cmd <= '9':
+    if request['Content'] in consts.text_commands:
+        cmd = consts.text_commands[request['Content']]
+    else:
+        cmd = request['Content']
+    if cmd and len(cmd) == 1 and '0' <= cmd <= '9':
         response = None
         history = mysql_conn.get_lastquery(request['FromUserName'])
         if history and not history['last_status'] and history['last_query']:
@@ -307,6 +310,9 @@ class WechatHandler(tornado.web.RequestHandler):
             'timestamp'), self.get_argument('nonce')]
         arr.sort()
         return hashlib.sha1(''.join(arr)).hexdigest() == self.get_argument('signature')
+
+    def data_received(self, chunk):
+        pass
 
 
 #
