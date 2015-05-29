@@ -52,7 +52,7 @@ def get_suninfo(lon, lat, start_time, days):
             next_time = observer.next_rising(sun).datetime()
             result['rise_set'].append(next_time.strftime('%Y%m%d%H%M'))
             observer.date = next_time
-        except ephem.NeverUpError, ephem.AlwaysUpError:
+        except (ValueError, TypeError):
             observer.date = observer.date.datetime() + datetime.timedelta(days=1)
     observer.date = start_time
     for i in range(days):
@@ -60,7 +60,7 @@ def get_suninfo(lon, lat, start_time, days):
             next_time = observer.next_setting(sun).datetime()
             result['rise_set'].append(next_time.strftime('%Y%m%d%H%M'))
             observer.date = next_time
-        except ephem.NeverUpError, ephem.AlwaysUpError:
+        except (ValueError, TypeError):
             observer.date = observer.date.datetime() + datetime.timedelta(days=1)
     observer.date = start_time
     observer.horizon = '-18'
@@ -69,7 +69,7 @@ def get_suninfo(lon, lat, start_time, days):
             next_time = observer.next_rising(sun).datetime()
             result['twilight'].append(next_time.strftime('%Y%m%d%H%M'))
             observer.date = next_time
-        except ephem.NeverUpError, ephem.AlwaysUpError:
+        except (ValueError, TypeError):
             observer.date = observer.date.datetime() + datetime.timedelta(days=1)
     observer.date = start_time
     for i in range(days):
@@ -77,6 +77,6 @@ def get_suninfo(lon, lat, start_time, days):
             next_time = observer.next_setting(sun).datetime()
             result['twilight'].append(next_time.strftime('%Y%m%d%H%M'))
             observer.date = next_time
-        except ephem.NeverUpError, ephem.AlwaysUpError:
+        except (ValueError, TypeError):
             observer.date = observer.date.datetime() + datetime.timedelta(days=1)
     return result
