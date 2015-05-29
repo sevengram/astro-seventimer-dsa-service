@@ -51,7 +51,7 @@ class Connector(object):
     def miss_targets(self, username, targets):
         result = []
         for target in targets:
-            r = self.ssinfo.find_one({'skysafari_info.ObjectID': target['ObjectID']})
+            r = self.ssinfo.find_one({'ssid': target['ssid']})
             if r:
                 if not self.is_observerd(username, r):
                     src_collection = getattr(self.datadb, r['ref'])
@@ -71,7 +71,7 @@ class Connector(object):
                     else:
                         print("[WARNING] No data: %s" % r['object'])
             else:
-                print("[WARNING] No ObjectID: %s" % target['ObjectID'])
+                print("[WARNING] No ssid: %s" % target['ssid'])
         return result
 
     def is_observerd(self, username, item):
@@ -97,7 +97,7 @@ class Connector(object):
 
     def add_skylist_record(self, username, ssid, observing_time):
         target_collection = getattr(self.userdb, username).records
-        r = self.ssinfo.find_one({'skysafari_info.ObjectID': ssid})
+        r = self.ssinfo.find_one({'ssid': ssid})
         if r:
             src_collection = getattr(self.datadb, r['ref'])
             obj = src_collection.find_one({'object': r['object']})
@@ -120,7 +120,7 @@ class Connector(object):
             else:
                 print("[WARNING] No data: %s" % r['object'])
         else:
-            print("[WARNING] No ObjectID: %s" % ssid)
+            print("[WARNING] No ssid: %s" % ssid)
 
     def __addalltoset__(self, collection, old_record, key, values):
         if self.debug:

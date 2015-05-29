@@ -58,7 +58,7 @@ class DeepskyDealer(object):
                 (float(record['DateObserved']) - 2440587.5) * 3600 * 24)
             observing_time = [datetime.datetime(*t[:6])]
             self.conn.add_skylist_record(
-                username, record['ObjectID'], observing_time)
+                username, record['ssid'], observing_time)
 
     def get_miss_targets(self, username, targets):
         return self.conn.miss_targets(username, targets)
