@@ -10,5 +10,5 @@ if __name__ == "__main__":
     for info in db.ssinfo.find():
         numbers = info['skysafari_info']['CatalogNumber']
         numbers.sort()
-        ssid = hashlib.sha1(''.join(numbers).replace(' ', '').lower()).hexdigest().lower()
-        db.ssinfo.update_one({'_id': info['_id']}, {'$set': {'ssid': ssid}})
+        ssid = hashlib.md5(''.join(numbers).replace(' ', '').lower()).hexdigest().lower()
+        db.ssinfo.update({'_id': info['_id']}, {'$set': {'ssid': ssid}})
