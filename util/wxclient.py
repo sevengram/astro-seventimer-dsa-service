@@ -214,7 +214,7 @@ class WechatConnector(object):
         raw = BeautifulSoup(result)
         try:
             t = raw.find_all(
-                'script', {'type': 'text/javascript', 'src': ''})[-1].text
+                'script', {'type': 'text/javascript', 'src': ''})[-2].text
             users = json.loads(
                 t[t.index('['):t.rindex(']') + 1], encoding='utf-8')
         except (ValueError, IndexError):
@@ -263,7 +263,7 @@ class WechatConnector(object):
         raw = BeautifulSoup(result)
         try:
             t = raw.find_all(
-                'script', {'type': 'text/javascript', 'src': ''})[-1].text
+                'script', {'type': 'text/javascript', 'src': ''})[-2].text
             s = t[t.find('operation_seq'):].split(',')[0]
             seq = s[s.index('\"') + 1:s.rindex('\"')]
         except (ValueError, IndexError):
@@ -351,7 +351,7 @@ class WechatConnector(object):
         itemid = None
         try:
             t = raw.find_all(
-                'script', {'type': 'text/javascript', 'src': ''})[-1].text
+                'script', {'type': 'text/javascript', 'src': ''})[-2].text
             items = json.loads(t[t.index('{'):t.rindex('}') + 1], encoding='utf-8')
             for item in items['item']:
                 if title == item['title']:
