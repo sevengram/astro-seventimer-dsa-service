@@ -310,8 +310,8 @@ class WechatConnector(object):
             ts = raw.find_all('script', {'type': 'text/javascript', 'src': ''})
             for t in ts:
                 if t.text.strip(' \t\r\n').startswith('window.wx'):
-                    i = t.text.find('ticket:')
-                    ticket = t.text[i + 8:i + 48]
+                    i = t.text.find('ticket:\"')
+                    ticket = t.text[i + 8:i + 48]  # TODO: should change here
                     break
         except (ValueError, IndexError):
             ticket = None
