@@ -313,7 +313,7 @@ class WechatConnector(object):
                     i = t.text.find('ticket:\"')
                     if i != -1:
                         ticket = t.text[i + 8:i + 48]  # TODO: should change here
-                    break
+                        break
         except (ValueError, IndexError):
             ticket = None
 
