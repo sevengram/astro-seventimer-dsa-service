@@ -311,7 +311,8 @@ class WechatConnector(object):
             for t in ts:
                 if t.text.strip(' \t\r\n').startswith('window.wx'):
                     i = t.text.find('ticket:\"')
-                    ticket = t.text[i + 8:i + 48]  # TODO: should change here
+                    if i != -1:
+                        ticket = t.text[i + 8:i + 48]  # TODO: should change here
                     break
         except (ValueError, IndexError):
             ticket = None
