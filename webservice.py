@@ -16,8 +16,8 @@ if __name__ == "__main__":
     tornado.options.parse_command_line()
     app = tornado.web.Application(
         handlers=[
-            (r'/service/weather', seventimer.WeatherHandler),
-            (r'/service/dsa', deepsky.DeepskyHandler, dict(dealer=deepsky.DeepskyDealer()))
+            (r'/weather', seventimer.WeatherHandler),
+            (r'/dsa', deepsky.DeepskyHandler, dict(dealer=deepsky.DeepskyDealer()))
         ], debug=True)
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
     http_server.listen(options.port)
