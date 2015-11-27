@@ -12,7 +12,6 @@ import ephem
 
 
 class WeatherHandler(tornado.web.RequestHandler):
-    @tornado.web.asynchronous
     @tornado.gen.coroutine
     def post(self):
         lon = self.get_argument('lon')
@@ -36,6 +35,9 @@ class WeatherHandler(tornado.web.RequestHandler):
     def write_error(self, status_code, **kwargs):
         result = {'type': 'service@weather', 'err': status_code, 'data': {}}
         self.write(json.dumps(result))
+
+    def data_received(self, chunk):
+        pass
 
 
 def get_suninfo(lon, lat, start_time, days):
