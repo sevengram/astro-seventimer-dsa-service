@@ -1,4 +1,4 @@
-# -*- coding:utf8 -*-
+# -*- coding: utf-8 -*-
 
 import time
 import json
@@ -22,7 +22,7 @@ class WeatherHandler(tornado.web.RequestHandler):
         start_time = time.time()
         response = yield client.fetch(request)
         if response.code == 200:
-            body = json.loads(response.body)
+            body = json.loads(response.body.decode('utf8'))
             body['solar'] = get_suninfo(
                 lon, lat, datetime.datetime.strptime(body['init'], '%Y%m%d%H'), 4)
             end_time = time.time()

@@ -1,4 +1,4 @@
-# -*- coding:utf8 -*-
+# -*- coding: utf-8 -*-
 
 import time
 import datetime
@@ -149,7 +149,7 @@ class DeepskyHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def post(self):
         try:
-            reqbody = json.loads(self.request.body)
+            reqbody = json.loads(self.request.body.decode('utf8'))
             if reqbody['type'] == 'query':
                 query = reqbody['param']
                 print("[QUERY]: %s" % query)
@@ -167,9 +167,9 @@ class DeepskyHandler(tornado.web.RequestHandler):
                 self.write(json.dumps(result))
             else:
                 print("[WARNING] Unknown request type: %s" % self.request.body)
-        except KeyError, e:
+        except KeyError as e:
             print("[ERROR] Missing key %s: %s" % (e, self.request.body))
-        except ValueError, e:
+        except ValueError as e:
             print("[ERROR] ValueError %s: %s" % (e, self.request.body))
         finally:
             sys.stdout.flush()
