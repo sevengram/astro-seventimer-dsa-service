@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import time
-import json
-import urllib
 import datetime
+import json
+import time
+from urllib.parse import urlencode
 
+import ephem
 import tornado.gen
 import tornado.httpclient
 import tornado.web
-import ephem
 
 
 class WeatherHandler(tornado.web.RequestHandler):
@@ -17,7 +17,7 @@ class WeatherHandler(tornado.web.RequestHandler):
         lon = self.get_argument('lon')
         lat = self.get_argument('lat')
         client = tornado.httpclient.AsyncHTTPClient()
-        request = tornado.httpclient.HTTPRequest(url="http://202.127.24.18/v4/bin/astro.php?" + urllib.urlencode(
+        request = tornado.httpclient.HTTPRequest(url="http://202.127.24.18/v4/bin/astro.php?" + urlencode(
             {'lon': lon, 'lat': lat, 'output': 'json'}), connect_timeout=10, request_timeout=10)
         start_time = time.time()
         response = yield client.fetch(request)
@@ -26,7 +26,7 @@ class WeatherHandler(tornado.web.RequestHandler):
             body['solar'] = get_suninfo(
                 lon, lat, datetime.datetime.strptime(body['init'], '%Y%m%d%H'), 4)
             end_time = time.time()
-            result = {'type': 'service@weather', 'err': 0, 'data': body, 'delay': long((end_time - start_time) * 1000)}
+            result = {'type': 'service@weather', 'err': 0, 'data': body, 'delay': int((end_time - start_time) * 1000)}
             self.write(result)
             self.finish()
         else:
